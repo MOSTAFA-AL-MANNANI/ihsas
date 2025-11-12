@@ -14,6 +14,7 @@ import {
   faRocket
 } from "@fortawesome/free-solid-svg-icons";
 
+
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +26,7 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/admin/login", { 
+      const res = await axios.post("https://ihsas-back.vercel.app/api/admin/login", { 
         email, 
         password 
       });
@@ -81,8 +82,8 @@ export default function AdminLogin() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <div className="relative group">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                <FontAwesomeIcon icon={faUserShield} className="text-2xl" />
+              <div className="w-20 h-20  rounded-2xl flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                <img src="jadara.png" alt="" />
               </div>
               <div className="absolute -inset-3 bg-amber-400 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500 animate-pulse"></div>
               <div className="absolute -inset-1 bg-blue-600 rounded-2xl opacity-0 group-hover:opacity-20 blur-md transition-opacity duration-300"></div>

@@ -46,7 +46,7 @@ export default function AdminDashboard() {
   const [itemsPerPage] = useState(5);
 
   const token = localStorage.getItem("adminToken");
-  const apiBase = "http://localhost:3000/api/candidat";
+  const apiBase = "https://ihsas-back.vercel.app/api/candidat";
 
   // Convertir Base64 en Blob
   const base64ToBlob = (base64, mime) => {
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
 
     if (result.isConfirmed) {
       try {
-        await axios.post("http://localhost:3000/api/admin/logout", {}, {
+        await axios.post("https://ihsas-back.vercel.app/api/admin/logout", {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) { 
@@ -309,7 +309,7 @@ const handleDelete = async (id, fullName) => {
   };
 
   const getPdfUrl = (id, type) => {
-    return `http://localhost:3000/api/candidat/${id}/${type}`;
+    return `https://ihsas-back.vercel.app/api/candidat/${id}/${type}`;
   };
 
   // Filtrer candidats
@@ -338,8 +338,8 @@ const handleDelete = async (id, fullName) => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-2xl shadow-2xl">
-            <FontAwesomeIcon icon={faShieldAlt} className="text-white text-2xl" />
+          <div className="h-16 w-16 p-3">
+            <img src="jadara.png" alt="Jadara Foundation Logo" />
           </div>
           <div>
             <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">

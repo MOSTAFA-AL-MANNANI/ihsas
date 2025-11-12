@@ -34,7 +34,7 @@ export default function Add() {
       if (cv) formData.append("cv", cv);
       if (cover) formData.append("cover", cover);
 
-      const res = await axios.post("http://localhost:3000/api/candidat/add", formData, {
+      const res = await axios.post("https://ihsas-back.vercel.app/api/candidat/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -88,20 +88,6 @@ export default function Add() {
               <span className="text-blue-600 text-sm opacity-80">Fondation</span>
             </div>
           </div>
-
-          {/* Logo Noucer Wings Tech */}
-          <div className="group flex items-center gap-4 p-4 rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-500 hover:-translate-y-1 border border-amber-100">
-            <div className="relative">
-              <div className="w-14 h-14  rounded-full flex items-center justify-center text-amber-400 font-bold text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <img src="logo.png" alt="" />
-              </div>
-              <div className="absolute -inset-2 bg-amber-400 rounded-full opacity-0 group-hover:opacity-20 blur-md transition-opacity duration-300 animate-pulse"></div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-blue-600 font-bold text-xl tracking-tight">Noucer Wings Tech</span>
-              <span className="text-amber-500 text-sm opacity-80">Formation</span>
-            </div>
-          </div>
         </div>
 
         {/* Titre Principal */}
@@ -110,7 +96,7 @@ export default function Add() {
             Rejoignez Notre Équipe
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
-            Postulez dès maintenant et participez à des projets innovants avec Jadara et Noucer Wings Tech
+            Postulez dès maintenant et participez à des projets innovants avec Jadara Fondation
           </p>
         </div>
       </div>
