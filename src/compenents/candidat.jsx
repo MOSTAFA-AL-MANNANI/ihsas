@@ -158,7 +158,7 @@ export default function AdminDashboard() {
         console.error(err);
       } finally {
         localStorage.removeItem("adminToken");
-        window.location.href = "/";
+        window.location.href = "/login";
       }
     }
   };
