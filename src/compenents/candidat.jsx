@@ -52,9 +52,9 @@ export default function AdminDashboard() {
   const [itemsPerPage] = useState(5);
 
   const token = localStorage.getItem("adminToken");
-  const apiBase = "http://localhost:3000/api/candidat";
-  const filiereApi = "http://localhost:3000/api/filiere";
-  const centerApi = "http://localhost:3000/api/center";
+  const apiBase = "https://ihsas-back.vercel.app/api/candidat";
+  const filiereApi = "https://ihsas-back.vercel.app/api/filiere";
+  const centerApi = "https://ihsas-back.vercel.app/api/center";
 
   // Convertir Base64 en Blob
   const base64ToBlob = (base64, mime) => {
@@ -176,7 +176,7 @@ Centre: ${centerName}`;
 
     if (result.isConfirmed) {
       try {
-        await axios.post("http://localhost:3000/api/admin/logout", {}, {
+        await axios.post("https://ihsas-back.vercel.app/api/admin/logout", {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) { 
@@ -350,7 +350,7 @@ Centre: ${centerName}`;
   };
 
   const getPdfUrl = (id, type) => {
-    return `http://localhost:3000/api/candidat/${id}/${type}`;
+    return `https://ihsas-back.vercel.app/api/candidat/${id}/${type}`;
   };
 
   // Fonction pour obtenir le nom de la filière

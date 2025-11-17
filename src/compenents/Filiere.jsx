@@ -20,7 +20,7 @@ import {
 // 📌 Component: CRUD Filiere
 // ==========================
 export function FilierePage() {
-  const api = "http://localhost:3000/api/filiere";
+  const api = "https://ihsas-back.vercel.app/api/filiere";
   const [filieres, setFilieres] = useState([]);
   const [form, setForm] = useState({ name: "", description: "" });
   const [editingId, setEditingId] = useState(null);

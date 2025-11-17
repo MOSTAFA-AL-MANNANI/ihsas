@@ -53,7 +53,7 @@ const Sidebar = () => {
 
     if (result.isConfirmed) {
       try {
-        await axios.post("http://localhost:3000/api/admin/logout", {}, {
+        await axios.post("https://ihsas-back.vercel.app/api/admin/logout", {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) { 

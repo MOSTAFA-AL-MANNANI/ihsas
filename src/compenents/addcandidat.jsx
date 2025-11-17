@@ -29,8 +29,8 @@ const [center, setCenter] = useState("");
 
 useEffect(() => {
   const loadData = async () => {
-    const f = await axios.get("http://localhost:3000/api/filiere");
-    const c = await axios.get("http://localhost:3000/api/center");
+    const f = await axios.get("https://ihsas-back.vercel.app/api/filiere");
+    const c = await axios.get("https://ihsas-back.vercel.app/api/center");
     setFilieres(f.data);
     setCenters(c.data);
   };
@@ -53,7 +53,7 @@ useEffect(() => {
       if (cv) formData.append("cv", cv);
       if (cover) formData.append("cover", cover);
 
-      const res = await axios.post("http://localhost:3000/api/candidat/add", formData, {
+      const res = await axios.post("https://ihsas-back.vercel.app/api/candidat/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

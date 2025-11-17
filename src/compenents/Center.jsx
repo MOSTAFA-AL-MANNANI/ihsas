@@ -20,7 +20,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function CenterPage() {
-  const api = "http://localhost:3000/api/center";
+  const api = "https://ihsas-back.vercel.app/api/center";
 
   const [centers, setCenters] = useState([]);
   const [form, setForm] = useState({
