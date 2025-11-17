@@ -25,12 +25,16 @@ import {
   faSave,
   faUpload,
   faStar,
-  faShieldAlt
+  faShieldAlt,
+  faGraduationCap,
+  faBuilding
 } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin, faGithub } from "@fortawesome/free-brands-svg-icons";
 
 export default function AdminDashboard() {
   const [candidats, setCandidats] = useState([]);
+  const [filieres, setFilieres] = useState([]);
+  const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCandidat, setSelectedCandidat] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -38,6 +42,8 @@ export default function AdminDashboard() {
     fullName: "",
     linkedin: "",
     portfolio: "",
+    filiere: "",
+    center: "",
     cv: null,
     cover: null
   });
@@ -46,7 +52,9 @@ export default function AdminDashboard() {
   const [itemsPerPage] = useState(5);
 
   const token = localStorage.getItem("adminToken");
-  const apiBase = "https://ihsas-back.vercel.app/api/candidat";
+  const apiBase = "http://localhost:3000/api/candidat";
+  const filiereApi = "http://localhost:3000/api/filiere";
+  const centerApi = "http://localhost:3000/api/center";
 
   // Convertir Base64 en Blob
   const base64ToBlob = (base64, mime) => {
@@ -59,12 +67,53 @@ export default function AdminDashboard() {
     return new Blob([byteArray], { type: mime });
   };
 
+  // Charger toutes les données
+  const loadAllData = async () => {
+    setLoading(true);
+    try {
+      const [candidatsRes, filieresRes, centersRes] = await Promise.all([
+        axios.get(`${apiBase}/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(filiereApi),
+        axios.get(centerApi)
+      ]);
+
+      setCandidats(candidatsRes.data);
+      setFilieres(filieresRes.data);
+      setCenters(centersRes.data);
+    } catch (err) {
+      console.error(err);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: 'Erreur lors du chargement des données',
+        confirmButtonColor: '#dc2626',
+        background: '#f8fafc'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
   const handleExportFolder = async (candidat) => {
     try {
       const zip = new JSZip();
       
-      // Ajouter fichier texte avec LinkedIn et Portfolio
-      const textContent = `Nom: ${candidat.fullName}\nLinkedIn: ${candidat.linkedin || "-"}\nPortfolio: ${candidat.portfolio || "-"}\nDate d'ajout: ${new Date(candidat.createdAt).toLocaleDateString()}`;
+      // Ajouter fichier texte avec toutes les informations
+      const filiereName = candidat.filiere?.name || "Non spécifiée";
+      const centerName = candidat.center?.name || "Non spécifié";
+      
+      const textContent = `Nom: ${candidat.fullName}
+LinkedIn: ${candidat.linkedin || "-"}
+Portfolio: ${candidat.portfolio || "-"}
+Filière: ${filiereName}
+Centre: ${centerName}`;
+      
       zip.file("info.txt", textContent);
 
       // Ajouter CV si disponible
@@ -111,30 +160,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch candidats
-  const fetchCandidats = async () => {
-    try {
-      const res = await axios.get(`${apiBase}/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCandidats(res.data);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      await Swal.fire({
-        icon: 'error',
-        title: 'Erreur',
-        text: 'Erreur lors du chargement des candidats',
-        confirmButtonColor: '#dc2626',
-        background: '#f8fafc'
-      });
-    }
-  };
-
-  useEffect(() => {
-    fetchCandidats();
-  }, []);
-
   // Logout
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -151,7 +176,7 @@ export default function AdminDashboard() {
 
     if (result.isConfirmed) {
       try {
-        await axios.post("https://ihsas-back.vercel.app/api/admin/logout", {}, {
+        await axios.post("http://localhost:3000/api/admin/logout", {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) { 
@@ -164,91 +189,97 @@ export default function AdminDashboard() {
   };
 
   // Delete candidat
-const handleDelete = async (id, fullName) => {
-  const result = await Swal.fire({
-    title: 'Confirmer la suppression',
-    html: `
-      <div class="text-center">
-        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <i class="fas fa-trash text-red-600 text-xl"></i>
+  const handleDelete = async (id, fullName) => {
+    const result = await Swal.fire({
+      title: 'Confirmer la suppression',
+      html: `
+        <div class="text-center">
+          <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-trash text-red-600 text-xl"></i>
+          </div>
+          <p class="text-gray-700">Voulez-vous vraiment supprimer le candidat :</p>
+          <p class="font-bold text-red-600">${fullName}</p>
+          <p class="text-sm text-gray-500 mt-2">Cette action est irréversible</p>
         </div>
-        <p class="text-gray-700">Voulez-vous vraiment supprimer le candidat :</p>
-        <p class="font-bold text-red-600">${fullName}</p>
-        <p class="text-sm text-gray-500 mt-2">Cette action est irréversible</p>
-      </div>
-    `,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#dc2626',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Oui, supprimer',
-    cancelButtonText: 'Annuler',
-    background: '#f8fafc'
-  });
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler',
+      background: '#f8fafc'
+    });
 
-  if (result.isConfirmed) {
-    try {
-      // إظهار حالة التحميل
-      const loadingSwal = Swal.fire({
-        title: 'Suppression en cours...',
-        text: 'Veuillez patienter',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
+    if (result.isConfirmed) {
+      try {
+        const loadingSwal = Swal.fire({
+          title: 'Suppression en cours...',
+          text: 'Veuillez patienter',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        await axios.delete(`${apiBase}/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        await Swal.close();
+        
+        await Swal.fire({
+          icon: 'success',
+          title: 'Supprimé!',
+          text: 'Candidat supprimé avec succès',
+          confirmButtonColor: '#10b981',
+          background: '#f8fafc',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        setCandidats(prevCandidats => prevCandidats.filter(c => c._id !== id));
+        
+        if (currentItems.length === 1 && currentPage > 1) {
+          setCurrentPage(prev => prev - 1);
         }
-      });
-
-      await axios.delete(`${apiBase}/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      // إغلاق نافذة التحميل
-      await Swal.close();
-      
-      // عرض رسالة النجاح
-      await Swal.fire({
-        icon: 'success',
-        title: 'Supprimé!',
-        text: 'Candidat supprimé avec succès',
-        confirmButtonColor: '#10b981',
-        background: '#f8fafc',
-        timer: 1500,
-        showConfirmButton: false
-      });
-      
-      // تحديث القائمة مباشرة بدون إعادة تحميل الصفحة
-      setCandidats(prevCandidats => prevCandidats.filter(c => c._id !== id));
-      
-      // إذا كان المرشح المحذوف في الصفحة الحالية وكان آخر مرشح، نعود للصفحة السابقة
-      if (currentItems.length === 1 && currentPage > 1) {
-        setCurrentPage(prev => prev - 1);
+        
+      } catch (err) {
+        console.error(err);
+        await Swal.close();
+        await Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: err.response?.data?.message || 'Erreur lors de la suppression',
+          confirmButtonColor: '#dc2626',
+          background: '#f8fafc'
+        });
       }
-      
-    } catch (err) {
-      console.error(err);
-      
-      // إغلاق نافذة التحميل في حالة الخطأ
-      await Swal.close();
-      
-      await Swal.fire({
-        icon: 'error',
-        title: 'Erreur',
-        text: err.response?.data?.message || 'Erreur lors de la suppression',
-        confirmButtonColor: '#dc2626',
-        background: '#f8fafc'
-      });
     }
-  }
-};
+  };
 
   // Ajouter ou modifier candidat
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.filiere || !formData.center) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Champs requis',
+        text: 'Veuillez sélectionner une filière et un centre',
+        confirmButtonColor: '#f59e0b',
+        background: '#f8fafc'
+      });
+      return;
+    }
+
     try {
       const data = new FormData();
       data.append("fullName", formData.fullName);
       data.append("linkedin", formData.linkedin);
       data.append("portfolio", formData.portfolio);
+      data.append("filiere", formData.filiere);
+      data.append("center", formData.center);
       if (formData.cv) data.append("cv", formData.cv);
       if (formData.cover) data.append("cover", formData.cover);
 
@@ -280,10 +311,18 @@ const handleDelete = async (id, fullName) => {
         });
       }
 
-      setFormData({ fullName: "", linkedin: "", portfolio: "", cv: null, cover: null });
+      setFormData({ 
+        fullName: "", 
+        linkedin: "", 
+        portfolio: "", 
+        filiere: "", 
+        center: "", 
+        cv: null, 
+        cover: null 
+      });
       setSelectedCandidat(null);
       setShowModal(false);
-      fetchCandidats();
+      loadAllData();
     } catch (err) {
       console.error(err);
       await Swal.fire({
@@ -302,6 +341,8 @@ const handleDelete = async (id, fullName) => {
       fullName: c.fullName || "",
       linkedin: c.linkedin || "",
       portfolio: c.portfolio || "",
+      filiere: c.filiere?._id || "",
+      center: c.center?._id || "",
       cv: null,
       cover: null
     });
@@ -309,14 +350,36 @@ const handleDelete = async (id, fullName) => {
   };
 
   const getPdfUrl = (id, type) => {
-    return `https://ihsas-back.vercel.app/api/candidat/${id}/${type}`;
+    return `http://localhost:3000/api/candidat/${id}/${type}`;
+  };
+
+  // Fonction pour obtenir le nom de la filière
+  const getFiliereName = (filiere) => {
+    if (typeof filiere === 'object' && filiere !== null) {
+      return filiere.name || "Non spécifiée";
+    }
+    // Si c'est un ID, chercher dans la liste des filières
+    const filiereObj = filieres.find(f => f._id === filiere);
+    return filiereObj ? filiereObj.name : "Non spécifiée";
+  };
+
+  // Fonction pour obtenir le nom du centre
+  const getCenterName = (center) => {
+    if (typeof center === 'object' && center !== null) {
+      return center.name || "Non spécifié";
+    }
+    // Si c'est un ID, chercher dans la liste des centres
+    const centerObj = centers.find(c => c._id === center);
+    return centerObj ? centerObj.name : "Non spécifié";
   };
 
   // Filtrer candidats
   const filtered = candidats.filter(c =>
     c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.linkedin && c.linkedin.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (c.portfolio && c.portfolio.toLowerCase().includes(searchQuery.toLowerCase()))
+    (c.portfolio && c.portfolio.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    getFiliereName(c.filiere).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    getCenterName(c.center).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Pagination
@@ -330,7 +393,13 @@ const handleDelete = async (id, fullName) => {
     total: candidats.length,
     withCV: candidats.filter(c => c.cvName).length,
     withCover: candidats.filter(c => c.coverLetterName).length,
-    withLinkedIn: candidats.filter(c => c.linkedin).length
+    withLinkedIn: candidats.filter(c => c.linkedin).length,
+    filieresCount: new Set(candidats.map(c => 
+      typeof c.filiere === 'object' ? c.filiere._id : c.filiere
+    )).size,
+    centersCount: new Set(candidats.map(c => 
+      typeof c.center === 'object' ? c.center._id : c.center
+    )).size
   };
 
   return (
@@ -345,7 +414,7 @@ const handleDelete = async (id, fullName) => {
             <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">
               Dashboard Admin
             </h1>
-            <p className="text-gray-600">Gestion des candidatures</p>
+            <p className="text-gray-600">Gestion des candidatures avec filières et centres</p>
           </div>
         </div>
 
@@ -368,8 +437,8 @@ const handleDelete = async (id, fullName) => {
       </div>
 
       {/* Cartes Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-blue-100 hover:shadow-3xl transition-all duration-500 group">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-blue-100 hover:shadow-3xl transition-all duration-500 group lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm font-medium">Total Candidats</p>
@@ -393,26 +462,26 @@ const handleDelete = async (id, fullName) => {
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-blue-100 hover:shadow-3xl transition-all duration-500 group">
+        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-green-100 hover:shadow-3xl transition-all duration-500 group">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Avec LinkedIn</p>
-              <p className="text-3xl font-black text-blue-600 mt-2">{stats.withLinkedIn}</p>
+              <p className="text-gray-600 text-sm font-medium">Filières</p>
+              <p className="text-3xl font-black text-green-600 mt-2">{stats.filieresCount}</p>
             </div>
-            <div className="bg-blue-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-              <FontAwesomeIcon icon={faLinkedin} className="text-blue-600 text-xl" />
+            <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+              <FontAwesomeIcon icon={faGraduationCap} className="text-green-600 text-xl" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-amber-100 hover:shadow-3xl transition-all duration-500 group">
+        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-purple-100 hover:shadow-3xl transition-all duration-500 group">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Avec Lettre</p>
-              <p className="text-3xl font-black text-amber-500 mt-2">{stats.withCover}</p>
+              <p className="text-gray-600 text-sm font-medium">Centres</p>
+              <p className="text-3xl font-black text-purple-600 mt-2">{stats.centersCount}</p>
             </div>
-            <div className="bg-amber-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-              <FontAwesomeIcon icon={faFileArchive} className="text-amber-500 text-xl" />
+            <div className="bg-purple-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+              <FontAwesomeIcon icon={faBuilding} className="text-purple-600 text-xl" />
             </div>
           </div>
         </div>
@@ -425,7 +494,7 @@ const handleDelete = async (id, fullName) => {
         </div>
         <input
           type="text"
-          placeholder="Rechercher par nom, LinkedIn, portfolio..."
+          placeholder="Rechercher par nom, LinkedIn, portfolio, filière ou centre..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="w-full bg-white/90 backdrop-blur-sm border-2 border-gray-200 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 shadow-lg"
@@ -446,19 +515,19 @@ const handleDelete = async (id, fullName) => {
                   <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <FontAwesomeIcon icon={faUser} />
-                      Nom Complet
+                      Candidat
                     </div>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
                     <div className="flex items-center gap-2">
-                      <FontAwesomeIcon icon={faLinkedin} />
-                      LinkedIn
+                      <FontAwesomeIcon icon={faGraduationCap} />
+                      Filière
                     </div>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
                     <div className="flex items-center gap-2">
-                      <FontAwesomeIcon icon={faLink} />
-                      Portfolio
+                      <FontAwesomeIcon icon={faBuilding} />
+                      Centre
                     </div>
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
@@ -480,7 +549,6 @@ const handleDelete = async (id, fullName) => {
                   <tr 
                     key={c._id} 
                     className="hover:bg-blue-50/50 transition-all duration-300 group"
-                    style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -489,44 +557,48 @@ const handleDelete = async (id, fullName) => {
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">{c.fullName}</div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(c.createdAt).toLocaleDateString()}
+                          <div className="flex gap-2 mt-1">
+                            {c.linkedin && (
+                              <a 
+                                href={c.linkedin} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                                title="LinkedIn"
+                              >
+                                <FontAwesomeIcon icon={faLinkedin} className="text-sm" />
+                              </a>
+                            )}
+                            {c.portfolio && (
+                              <a 
+                                href={c.portfolio} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-amber-600 hover:text-amber-800 transition-colors"
+                                title="Portfolio"
+                              >
+                                <FontAwesomeIcon icon={faLink} className="text-sm" />
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {c.linkedin ? (
-                        <a 
-                          href={c.linkedin} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors group/link"
-                        >
-                          <FontAwesomeIcon icon={faLinkedin} className="text-blue-600" />
-                          <span className="text-sm font-medium">LinkedIn</span>
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 text-sm">-</span>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <FontAwesomeIcon icon={faGraduationCap} className="text-blue-600 text-sm" />
+                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                          {getFiliereName(c.filiere)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {c.portfolio ? (
-                        <a 
-                          href={c.portfolio} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1 rounded-full hover:bg-amber-100 transition-colors group/link"
-                        >
-                          <FontAwesomeIcon 
-                            icon={c.portfolio.includes('github') ? faGithub : faLink} 
-                            className="text-amber-500" 
-                          />
-                          <span className="text-sm font-medium">Portfolio</span>
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 text-sm">-</span>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <FontAwesomeIcon icon={faBuilding} className="text-amber-500 text-sm" />
+                        <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-sm font-medium">
+                          {getCenterName(c.center)}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex gap-3">
@@ -681,6 +753,50 @@ const handleDelete = async (id, fullName) => {
                   onChange={e => setFormData({...formData, portfolio: e.target.value})}
                   className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 bg-white/50"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Filière */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faGraduationCap} className="text-blue-600" />
+                    Filière *
+                  </label>
+                  <select
+                    value={formData.filiere}
+                    onChange={e => setFormData({...formData, filiere: e.target.value})}
+                    required
+                    className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 bg-white/50"
+                  >
+                    <option value="">Sélectionner une filière</option>
+                    {filieres.map(filiere => (
+                      <option key={filiere._id} value={filiere._id}>
+                        {filiere.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Centre */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faBuilding} className="text-amber-500" />
+                    Centre *
+                  </label>
+                  <select
+                    value={formData.center}
+                    onChange={e => setFormData({...formData, center: e.target.value})}
+                    required
+                    className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-amber-500/30 focus:border-amber-500 transition-all duration-300 hover:border-amber-300 bg-white/50"
+                  >
+                    <option value="">Sélectionner un centre</option>
+                    {centers.map(center => (
+                      <option key={center._id} value={center._id}>
+                        {center.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

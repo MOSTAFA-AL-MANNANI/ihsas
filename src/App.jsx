@@ -4,6 +4,9 @@ import Add from "./compenents/addcandidat";
 import AdminLogin from "./compenents/login";
 import CandidatPage from "./compenents/candidat";
 import ProtectedRoute from "./compenents/ProtectedRoute";
+import { FilierePage } from "./compenents/Filiere";
+import CenterPage from "./compenents/Center";
+import Layout from "./compenents/layout";
 
 function App() {
   return (
@@ -11,7 +14,10 @@ function App() {
       <Routes>
         <Route path="/" element={<Add />} />
         <Route path="/login" element={<AdminLogin />} />
-        <Route path="/candidat" element={<ProtectedRoute><CandidatPage /></ProtectedRoute>} />
+        <Route path="/filiere" element={<ProtectedRoute><Layout><FilierePage /></Layout></ProtectedRoute>} />
+        <Route path="/center" element={<ProtectedRoute><Layout><CenterPage /></Layout></ProtectedRoute>} />
+        <Route path="/candidat" element={<ProtectedRoute><Layout><CandidatPage /></Layout></ProtectedRoute>} />
+
       </Routes>
     </Router>
   );

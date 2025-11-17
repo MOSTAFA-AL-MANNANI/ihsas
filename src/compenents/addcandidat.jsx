@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 
@@ -21,6 +21,22 @@ export default function Add() {
   const [cv, setCv] = useState(null);
   const [cover, setCover] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [filieres, setFilieres] = useState([]);
+const [centers, setCenters] = useState([]);
+
+const [filiere, setFiliere] = useState("");
+const [center, setCenter] = useState("");
+
+useEffect(() => {
+  const loadData = async () => {
+    const f = await axios.get("http://localhost:3000/api/filiere");
+    const c = await axios.get("http://localhost:3000/api/center");
+    setFilieres(f.data);
+    setCenters(c.data);
+  };
+
+  loadData();
+}, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,10 +47,13 @@ export default function Add() {
       formData.append("fullName", fullName);
       formData.append("linkedin", linkedin);
       formData.append("portfolio", portfolio);
+      formData.append("filiere", filiere);
+      formData.append("center", center);
+
       if (cv) formData.append("cv", cv);
       if (cover) formData.append("cover", cover);
 
-      const res = await axios.post("https://ihsas-back.vercel.app/api/candidat/add", formData, {
+      const res = await axios.post("http://localhost:3000/api/candidat/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -172,6 +191,59 @@ export default function Add() {
               />
             </div>
           </div>
+
+          {/* Select Filiere */}
+<div className="group">
+  <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+    Choisir la Filière *
+  </label>
+  <div className="relative">
+    <FontAwesomeIcon 
+      icon={faRocket} 
+      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 transition-colors duration-300" 
+    />
+    <select
+      value={filiere}
+      onChange={(e) => setFiliere(e.target.value)}
+      required
+      className="border border-gray-300 rounded-2xl p-4 pl-12 w-full bg-white/50 backdrop-blur-sm 
+      focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
+      hover:border-blue-400 transition-all duration-300"
+    >
+      <option value="">-- Sélectionner la filière --</option>
+      {filieres.map(f => (
+        <option key={f._id} value={f._id}>{f.name}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
+{/* Select Center */}
+<div className="group">
+  <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+    Choisir le Centre *
+  </label>
+  <div className="relative">
+    <FontAwesomeIcon 
+      icon={faBuilding} 
+      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 transition-colors duration-300" 
+    />
+    <select
+      value={center}
+      onChange={(e) => setCenter(e.target.value)}
+      required
+      className="border border-gray-300 rounded-2xl p-4 pl-12 w-full bg-white/50 backdrop-blur-sm 
+      focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
+      hover:border-blue-400 transition-all duration-300"
+    >
+      <option value="">-- Sélectionner le centre --</option>
+      {centers.map(c => (
+        <option key={c._id} value={c._id}>{c.name}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
 
           {/* Champ CV */}
           <div className="group">
