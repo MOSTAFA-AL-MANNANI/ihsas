@@ -436,56 +436,199 @@ Centre: ${centerName}`;
         </div>
       </div>
 
-      {/* Cartes Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-blue-100 hover:shadow-3xl transition-all duration-500 group lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Total Candidats</p>
-              <p className="text-3xl font-black text-blue-600 mt-2">{stats.total}</p>
-            </div>
-            <div className="bg-blue-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-              <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xl" />
-            </div>
-          </div>
+{/* Cartes Statistiques Améliorées */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  
+  {/* Carte Total Candidats - Version améliorée */}
+  <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 group relative overflow-hidden">
+    {/* Effet de brillance au survol */}
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+    
+    <div className="flex items-center justify-between relative z-10">
+      <div>
+        <p className="text-blue-100 text-sm font-medium mb-2">Total Candidats</p>
+        <p className="text-4xl font-black mb-2">{stats.total}</p>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full animate-pulse ${stats.total > 0 ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+          <span className="text-blue-200 text-xs">
+            {stats.total > 0 ? 'Enregistrements actifs' : 'Aucun candidat'}
+          </span>
         </div>
+      </div>
+      <div className="bg-white/20 p-4 rounded-2xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 backdrop-blur-sm border border-white/10">
+        <FontAwesomeIcon icon={faUsers} className="text-2xl" />
+      </div>
+    </div>
+    
+    {/* Barre de progression décorative */}
+    <div className="mt-4 relative z-10">
+      <div className="w-full bg-white/20 rounded-full h-1">
+        <div 
+          className="bg-gradient-to-r from-amber-400 to-amber-500 h-1 rounded-full transition-all duration-1000 ease-out"
+          style={{ width: `${Math.min((stats.total / 50) * 100, 100)}%` }}
+        ></div>
+      </div>
+    </div>
+  </div>
 
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-amber-100 hover:shadow-3xl transition-all duration-500 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Avec CV</p>
-              <p className="text-3xl font-black text-amber-500 mt-2">{stats.withCV}</p>
-            </div>
-            <div className="bg-amber-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-              <FontAwesomeIcon icon={faFilePdf} className="text-amber-500 text-xl" />
-            </div>
-          </div>
+  {/* Carte Avec CV - Version améliorée */}
+  <div className="bg-white/95 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-amber-100 hover:shadow-3xl transition-all duration-500 group hover:transform hover:-translate-y-1 relative overflow-hidden">
+    {/* Fond décoratif */}
+    <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 rounded-full transform translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-500"></div>
+    
+    <div className="flex items-center justify-between relative z-10">
+      <div>
+        <p className="text-gray-600 text-sm font-medium mb-2 flex items-center gap-2">
+          <FontAwesomeIcon icon={faFilePdf} className="text-amber-500 text-xs" />
+          Avec CV
+        </p>
+        <p className="text-4xl font-black text-amber-500 mb-2">{stats.withCV}</p>
+        <div className="bg-amber-50 inline-flex items-center gap-1 px-3 py-1 rounded-full">
+          <span className="text-amber-700 text-xs font-bold">
+            {stats.total > 0 ? Math.round((stats.withCV / stats.total) * 100) : 0}%
+          </span>
+          <FontAwesomeIcon icon={faChartLine} className="text-amber-600 text-xs" />
         </div>
+      </div>
+      <div className="bg-gradient-to-br from-amber-400 to-amber-500 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 text-white shadow-lg">
+        <FontAwesomeIcon icon={faFilePdf} className="text-xl" />
+      </div>
+    </div>
+  </div>
 
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-green-100 hover:shadow-3xl transition-all duration-500 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Filières</p>
-              <p className="text-3xl font-black text-green-600 mt-2">{stats.filieresCount}</p>
-            </div>
-            <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-              <FontAwesomeIcon icon={faGraduationCap} className="text-green-600 text-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-purple-100 hover:shadow-3xl transition-all duration-500 group">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Centres</p>
-              <p className="text-3xl font-black text-purple-600 mt-2">{stats.centersCount}</p>
-            </div>
-            <div className="bg-purple-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-              <FontAwesomeIcon icon={faBuilding} className="text-purple-600 text-xl" />
-            </div>
+  {/* Carte Filières - Version améliorée */}
+  <div className="bg-white/95 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-green-100 hover:shadow-3xl transition-all duration-500 group hover:transform hover:-translate-y-1 relative overflow-hidden">
+    {/* Éléments décoratifs */}
+    <div className="absolute bottom-0 left-0 w-16 h-16 bg-green-500/5 rounded-full transform -translate-x-8 translate-y-8 group-hover:scale-125 transition-transform duration-500"></div>
+    
+    <div className="flex items-center justify-between relative z-10">
+      <div>
+        <p className="text-gray-600 text-sm font-medium mb-2 flex items-center gap-2">
+          <FontAwesomeIcon icon={faGraduationCap} className="text-green-500 text-xs" />
+          Filières Utilisées
+        </p>
+        <p className="text-4xl font-black text-green-600 mb-2">{stats.filieresCount}</p>
+        <div className="flex items-center gap-2">
+          <div className="bg-green-50 inline-flex items-center gap-1 px-3 py-1 rounded-full">
+            <span className="text-green-700 text-xs font-bold">
+              sur {filieres.length}
+            </span>
           </div>
         </div>
       </div>
+      <div className="bg-gradient-to-br from-green-400 to-green-500 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 text-white shadow-lg">
+        <FontAwesomeIcon icon={faGraduationCap} className="text-xl" />
+      </div>
+    </div>
+    
+    {/* Points indicateurs */}
+    <div className="flex gap-1 mt-3 relative z-10">
+      {[...Array(Math.min(stats.filieresCount, 5))].map((_, i) => (
+        <div 
+          key={i}
+          className="w-2 h-2 bg-green-400 rounded-full animate-pulse"
+          style={{ animationDelay: `${i * 200}ms` }}
+        ></div>
+      ))}
+    </div>
+  </div>
+
+  {/* Carte Centres - Version améliorée */}
+  <div className="bg-white/95 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-purple-100 hover:shadow-3xl transition-all duration-500 group hover:transform hover:-translate-y-1 relative overflow-hidden">
+    {/* Éléments décoratifs */}
+    <div className="absolute top-4 right-4 w-12 h-12 bg-purple-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+    
+    <div className="flex items-center justify-between relative z-10">
+      <div>
+        <p className="text-gray-600 text-sm font-medium mb-2 flex items-center gap-2">
+          <FontAwesomeIcon icon={faBuilding} className="text-purple-500 text-xs" />
+          Centres Actifs
+        </p>
+        <p className="text-4xl font-black text-purple-600 mb-2">{stats.centersCount}</p>
+        <div className="bg-purple-50 inline-flex items-center gap-1 px-3 py-1 rounded-full">
+          <span className="text-purple-700 text-xs font-bold">
+            sur {centers.length}
+          </span>
+        </div>
+      </div>
+      <div className="bg-gradient-to-br from-purple-400 to-purple-500 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300 text-white shadow-lg">
+        <FontAwesomeIcon icon={faBuilding} className="text-xl" />
+      </div>
+    </div>
+    
+    {/* Barre d'activité */}
+    <div className="mt-3 relative z-10">
+      <div className="w-full bg-purple-100 rounded-full h-1">
+        <div 
+          className="bg-gradient-to-r from-purple-400 to-purple-500 h-1 rounded-full transition-all duration-1000"
+          style={{ 
+            width: `${centers.length > 0 ? (stats.centersCount / centers.length) * 100 : 0}%` 
+          }}
+        ></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Section des métriques secondaires */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  
+  {/* Métrique LinkedIn */}
+  <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl border border-blue-200 group hover:shadow-lg transition-all duration-300 hover:border-blue-300">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-blue-700 text-xs font-semibold uppercase tracking-wide">Profils LinkedIn</p>
+        <p className="text-2xl font-black text-blue-800 mt-1">{stats.withLinkedIn}</p>
+      </div>
+      <div className="bg-white p-2 rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
+        <FontAwesomeIcon icon={faLinkedin} className="text-blue-600" />
+      </div>
+    </div>
+    <div className="mt-2">
+      <div className="text-blue-600 text-xs font-medium">
+        {stats.total > 0 ? Math.round((stats.withLinkedIn / stats.total) * 100) : 0}% des candidats
+      </div>
+    </div>
+  </div>
+
+  {/* Métrique Lettres de motivation */}
+  <div className="bg-gradient-to-br from-amber-50 to-white p-4 rounded-2xl border border-amber-200 group hover:shadow-lg transition-all duration-300 hover:border-amber-300">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-amber-700 text-xs font-semibold uppercase tracking-wide">Avec Lettre</p>
+        <p className="text-2xl font-black text-amber-800 mt-1">{stats.withCover}</p>
+      </div>
+      <div className="bg-white p-2 rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
+        <FontAwesomeIcon icon={faFileArchive} className="text-amber-600" />
+      </div>
+    </div>
+    <div className="mt-2">
+      <div className="text-amber-600 text-xs font-medium">
+        {stats.total > 0 ? Math.round((stats.withCover / stats.total) * 100) : 0}% des candidats
+      </div>
+    </div>
+  </div>
+
+  {/* Métrique Taux de complétion */}
+  <div className="bg-gradient-to-br from-green-50 to-white p-4 rounded-2xl border border-green-200 group hover:shadow-lg transition-all duration-300 hover:border-green-300">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-green-700 text-xs font-semibold uppercase tracking-wide">Complétion</p>
+        <p className="text-2xl font-black text-green-800 mt-1">
+          {stats.total > 0 ? Math.round(((stats.withCV + stats.withCover) / (stats.total * 2)) * 100) : 0}%
+        </p>
+      </div>
+      <div className="bg-white p-2 rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
+        <FontAwesomeIcon icon={faChartLine} className="text-green-600" />
+      </div>
+    </div>
+    <div className="mt-2">
+      <div className="text-green-600 text-xs font-medium">
+        Documents fournis en moyenne
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* Barre de recherche */}
       <div className="relative mb-8">
