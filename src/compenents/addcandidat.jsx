@@ -125,7 +125,7 @@ useEffect(() => {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-3">
             <FontAwesomeIcon icon={faUser} className="text-blue-600" />
-            Ajouter un Candidat
+            Espace Candidat
           </h2>
           <p className="text-gray-600">Remplissez le formulaire ci-dessous pour postuler</p>
         </div>
@@ -301,10 +301,7 @@ useEffect(() => {
         </button>
       </form>
 
-      {/* Footer */}
-      <div className="mt-12 text-center text-gray-500 text-sm">
-        <p>© 2025 Jadara & Noucer Wings Tech. Tous droits réservés.</p>
-      </div>
+$
     </div>
   );
 }
