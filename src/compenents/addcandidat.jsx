@@ -152,46 +152,7 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Champ LinkedIn */}
-          <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-              LinkedIn
-            </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faLinkedin} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
-              />
-              <input
-                type="url"
-                placeholder="https://linkedin.com/in/votre-profil"
-                value={linkedin}
-                onChange={(e) => setLinkedin(e.target.value)}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
-              />
-            </div>
-          </div>
-
-          {/* Champ Portfolio */}
-          <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-              Portfolio
-            </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faLink} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
-              />
-              <input
-                type="url"
-                placeholder="https://votre-portfolio.com"
-                value={portfolio}
-                onChange={(e) => setPortfolio(e.target.value)}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
-              />
-            </div>
-          </div>
-
+          
           {/* Select Filiere */}
 <div className="group">
   <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
@@ -248,7 +209,7 @@ useEffect(() => {
           {/* Champ CV */}
           <div className="group">
             <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-              Curriculum Vitae (PDF)
+              Curriculum Vitae (CV) (PDF) *
             </label>
             <div className="relative">
               <FontAwesomeIcon 
@@ -260,6 +221,7 @@ useEffect(() => {
                 accept=".pdf"
                 onChange={(e) => setCv(e.target.files[0])}
                 className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                required
               />
             </div>
           </div>
@@ -267,7 +229,7 @@ useEffect(() => {
           {/* Champ Lettre de Motivation */}
           <div className="group">
             <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-              Lettre de Motivation (PDF)
+              Lettre de Motivation (PDF) *
             </label>
             <div className="relative">
               <FontAwesomeIcon 
@@ -279,9 +241,53 @@ useEffect(() => {
                 accept=".pdf"
                 onChange={(e) => setCover(e.target.files[0])}
                 className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                required
               />
             </div>
           </div>
+
+          {/* Champ LinkedIn */}
+          <div className="group">
+            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+              LinkedIn *
+            </label>
+            <div className="relative">
+              <FontAwesomeIcon 
+                icon={faLinkedin} 
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
+              />
+              <input
+                type="url"
+                placeholder="https://linkedin.com/in/votre-profil"
+                value={linkedin}
+                onChange={(e) => setLinkedin(e.target.value)}
+                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Champ Portfolio */}
+          <div className="group">
+            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+              Portfolio *
+            </label>
+            <div className="relative">
+              <FontAwesomeIcon 
+                icon={faLink} 
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
+              />
+              <input
+                type="url"
+                placeholder="https://votre-portfolio.com"
+                value={portfolio}
+                onChange={(e) => setPortfolio(e.target.value)}
+                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
+                required
+             />
+            </div>
+          </div>
+
         </div>
 
         {/* Bouton de soumission */}
