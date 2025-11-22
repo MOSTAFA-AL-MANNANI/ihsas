@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Bar, Pie } from "react-chartjs-2";
 import Swal from "sweetalert2";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +13,23 @@ import {
   Legend
 } from "chart.js";
 
+// Import FontAwesome
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faChartBar, 
+  faChartPie, 
+  faUsers, 
+  faGraduationCap, 
+  faBriefcase, 
+  faDownload,
+  faFilePdf,
+  faBuilding,
+  faSync,
+  faTrophy,
+  faMedal,
+  faStar
+} from '@fortawesome/free-solid-svg-icons';
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 export default function Dashboard() {
@@ -23,6 +39,11 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [centerStats, setCenterStats] = useState([]);
+  const [globalLoading, setGlobalLoading] = useState(false);
+
+  // Références pour les graphiques
+  const barChartRef = useRef(null);
+  const pieChartRef = useRef(null);
 
   // 🟦 Charger les centres de formation
   useEffect(() => {
@@ -31,10 +52,6 @@ export default function Dashboard() {
         setLoading(true);
         const res = await axios.get("https://ihsas-back.vercel.app/api/center");
         setCenters(res.data);
-        
-        // Charger les statistiques globales des centres
-        const statsRes = await axios.get("https://ihsas-back.vercel.app/api/stats/centers");
-        setCenterStats(statsRes.data);
       } catch (err) {
         console.error(err);
         Swal.fire({
@@ -84,211 +101,342 @@ export default function Dashboard() {
     }
   };
 
-  // 🟦 Exporter les statistiques en PDF
-  const exportToPDF = () => {
-    if (!stats || !selectedCenter) {
+  // 🟦 Fonction pour convertir un canvas en image base64
+  const canvasToImage = (canvas) => {
+    return canvas.toDataURL('image/png', 1.0);
+  };
+
+  // 🟦 Fonction pour créer un tableau manuellement dans le PDF
+  const createTable = (doc, headers, data, startY, colWidths, options = {}) => {
+    const { headerColor = [30, 64, 175], textColor = [0, 0, 0] } = options;
+    const lineHeight = 10;
+    const rowHeight = 12;
+    let currentY = startY;
+    
+    // En-tête du tableau
+    doc.setFillColor(...headerColor);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, 'bold');
+    
+    let currentX = 20;
+    headers.forEach((header, index) => {
+      doc.rect(currentX, currentY, colWidths[index], rowHeight, 'F');
+      doc.text(header, currentX + 5, currentY + 7);
+      currentX += colWidths[index];
+    });
+    
+    currentY += rowHeight;
+    
+    // Données du tableau
+    doc.setTextColor(...textColor);
+    doc.setFont(undefined, 'normal');
+    
+    data.forEach((row, rowIndex) => {
+      currentX = 20;
+      
+      // Dessiner les cellules de la ligne
+      row.forEach((cell, cellIndex) => {
+        // Couleur de fond alternée pour les lignes
+        if (rowIndex % 2 === 0 && rowIndex !== data.length - 1) {
+          doc.setFillColor(240, 240, 240);
+          doc.rect(currentX, currentY, colWidths[cellIndex], rowHeight, 'F');
+        }
+        
+        // Texte de la cellule
+        doc.setTextColor(...textColor);
+        
+        // Style pour la ligne de total
+        if (rowIndex === data.length - 1) {
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(30, 64, 175);
+          doc.setFillColor(220, 230, 255);
+          doc.rect(currentX, currentY, colWidths[cellIndex], rowHeight, 'F');
+        }
+        
+        doc.text(cell.toString(), currentX + 5, currentY + 7);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...textColor);
+        
+        currentX += colWidths[cellIndex];
+      });
+      
+      currentY += rowHeight;
+      
+      // Vérifier si on dépasse la page
+      if (currentY > 270) {
+        doc.addPage();
+        currentY = 20;
+        
+        // Redessiner l'en-tête sur la nouvelle page
+        doc.setFillColor(...headerColor);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont(undefined, 'bold');
+        
+        currentX = 20;
+        headers.forEach((header, index) => {
+          doc.rect(currentX, currentY, colWidths[index], rowHeight, 'F');
+          doc.text(header, currentX + 5, currentY + 7);
+          currentX += colWidths[index];
+        });
+        
+        currentY += rowHeight;
+      }
+    });
+    
+    return currentY;
+  };
+
+  // 🟦 Exporter les statistiques en PDF avec diagrammes
+  const exportToPDF = async () => {
+    if (!stats || !selectedCenter || !chartData) {
       Swal.fire({
         icon: 'warning',
         title: 'Aucune donnée',
-        text: 'Veuillez sélectionner un centre pour exporter les statistiques',
+        text: 'Veuillez sélectionner un centre et attendre le chargement des données',
         confirmButtonColor: '#1e40af'
       });
       return;
     }
 
-    const selectedCenterName = centers.find(c => c._id === selectedCenter)?.name || 'Centre inconnu';
-    
-    const doc = new jsPDF();
-    
-    // En-tête du document
-    doc.setFillColor(30, 64, 175);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text('RAPPORT DES STATISTIQUES', 105, 20, { align: 'center' });
-    doc.setFontSize(14);
-    doc.text(`Centre: ${selectedCenterName}`, 105, 30, { align: 'center' });
-    
-    // Date de génération
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(10);
-    doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 105, 37, { align: 'center' });
-    
-    // Statistiques principales
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(16);
-    doc.text('STATISTIQUES DES CANDIDATS', 20, 55);
-    
-    // Tableau des statistiques
-    doc.autoTable({
-      startY: 60,
-      head: [['Statut', 'Nombre de Candidats']],
-      body: [
+    try {
+      const selectedCenterName = centers.find(c => c._id === selectedCenter)?.name || 'Centre inconnu';
+      
+      const doc = new jsPDF();
+      
+      // ==================== PAGE 1: STATISTIQUES ====================
+      
+      // En-tête du document
+      doc.setFillColor(30, 64, 175);
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.text('RAPPORT DES STATISTIQUES', 105, 20, { align: 'center' });
+      doc.setFontSize(14);
+      doc.text(`Centre: ${selectedCenterName}`, 105, 30, { align: 'center' });
+      
+      // Date de génération
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(10);
+      doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 105, 37, { align: 'center' });
+      
+      // Statistiques principales
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(16);
+      doc.text('STATISTIQUES DES CANDIDATS', 20, 55);
+      
+      // Tableau des statistiques
+      const tableData = [
         ['Disponible', stats.Disponible || 0],
         ['En Stage', stats['En Stage'] || 0],
         ['En Travail', stats['En Travail'] || 0],
-        ['Total', (stats.Disponible || 0) + (stats['En Stage'] || 0) + (stats['En Travail'] || 0)]
-      ],
-      theme: 'grid',
-      headStyles: {
-        fillColor: [30, 64, 175],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 12,
-        cellPadding: 5
-      },
-      alternateRowStyles: {
-        fillColor: [240, 240, 240]
-      }
-    });
+        ['TOTAL', (stats.Disponible || 0) + (stats['En Stage'] || 0) + (stats['En Travail'] || 0)]
+      ];
+      
+      let currentY = createTable(
+        doc, 
+        ['Statut', 'Nombre de Candidats'], 
+        tableData, 
+        60, 
+        [100, 70]
+      );
 
-    // Ajouter les graphiques si disponibles
-    if (chartData) {
-      const finalY = doc.lastAutoTable.finalY + 15;
-      
-      // Section graphiques
-      doc.setFontSize(16);
-      doc.text('RÉPARTITION DES CANDIDATS', 20, finalY);
-      
       // Tableau de pourcentages
-      doc.autoTable({
-        startY: finalY + 10,
-        head: [['Statut', 'Nombre', 'Pourcentage']],
-        body: chartData.labels.map((label, index) => {
-          const value = chartData.datasets[0].data[index];
-          const total = chartData.datasets[0].data.reduce((a, b) => a + b, 0);
-          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-          return [label, value, percentage];
-        }),
-        theme: 'grid',
-        headStyles: {
-          fillColor: [59, 130, 246],
-          textColor: 255,
-          fontStyle: 'bold'
-        }
+      currentY += 15;
+      doc.setFontSize(16);
+      doc.text('RÉPARTITION DES CANDIDATS (%)', 20, currentY);
+      
+      const total = chartData.datasets[0].data.reduce((a, b) => a + b, 0);
+      const percentageData = chartData.labels.map((label, index) => {
+        const value = chartData.datasets[0].data[index];
+        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+        return [label, value.toString(), percentage];
       });
-    }
 
-    // Pied de page
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
+      percentageData.push(['TOTAL', total.toString(), '100%']);
+
+      currentY = createTable(
+        doc,
+        ['Statut', 'Nombre', 'Pourcentage'],
+        percentageData,
+        currentY + 10,
+        [70, 50, 50]
+      );
+
+      // Résumé statistique
+      currentY += 20;
+      doc.setFontSize(14);
+      doc.setTextColor(30, 64, 175);
+      doc.text('RÉSUMÉ STATISTIQUE', 20, currentY);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      currentY += 10;
+      doc.text(`• Total des candidats: ${total}`, 25, currentY);
+      currentY += 6;
+      doc.text(`• Centre: ${selectedCenterName}`, 25, currentY);
+      currentY += 6;
+      doc.text(`• Date du rapport: ${new Date().toLocaleDateString('fr-FR')}`, 25, currentY);
+
+      // Pied de page page 1
       doc.setFontSize(10);
       doc.setTextColor(150, 150, 150);
-      doc.text(`Page ${i} / ${pageCount}`, 105, 290, { align: 'center' });
-    }
+      doc.text('Page 1/2 - Statistiques Détaillées', 105, 290, { align: 'center' });
 
-    // Sauvegarder le PDF
-    doc.save(`statistiques-${selectedCenterName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
-    
-    Swal.fire({
-      icon: 'success',
-      title: 'PDF Généré',
-      text: 'Le rapport a été téléchargé avec succès',
-      timer: 2000,
-      showConfirmButton: false,
-      background: '#f8fafc'
-    });
-  };
+      // ==================== PAGE 2: DIAGRAMMES ====================
+      
+      doc.addPage();
 
-  // 🟦 Exporter les statistiques globales des centres en PDF
-  const exportAllCentersPDF = () => {
-    if (centerStats.length === 0) {
+      // En-tête page 2
+      doc.setFillColor(59, 130, 246);
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.text('DIAGRAMMES STATISTIQUES', 105, 20, { align: 'center' });
+      doc.setFontSize(14);
+      doc.text(`Centre: ${selectedCenterName}`, 105, 30, { align: 'center' });
+
+      doc.setTextColor(0, 0, 0);
+
+      // Attendre que les graphiques soient rendus
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Section Diagramme en Barres
+      doc.setFontSize(16);
+      doc.setTextColor(30, 64, 175);
+      doc.text('1. DIAGRAMME EN BARRES', 20, 55);
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Répartition visuelle des candidats par statut', 20, 62);
+
+      if (barChartRef.current) {
+        const barCanvas = barChartRef.current.canvas;
+        const barImage = canvasToImage(barCanvas);
+        
+        // Redimensionner l'image pour s'adapter à la page
+        const barWidth = 170;
+        const barHeight = 100;
+        doc.addImage(barImage, 'PNG', 20, 70, barWidth, barHeight);
+      } else {
+        doc.setFontSize(12);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Diagramme en barres non disponible', 20, 80);
+      }
+
+      // Section Diagramme Circulaire
+      doc.setFontSize(16);
+      doc.setTextColor(30, 64, 175);
+      doc.text('2. DIAGRAMME CIRCULAIRE', 20, 185);
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Pourcentages de répartition des candidats', 20, 192);
+
+      if (pieChartRef.current) {
+        const pieCanvas = pieChartRef.current.canvas;
+        const pieImage = canvasToImage(pieCanvas);
+        
+        // Redimensionner l'image pour former un cercle parfait
+        const pieSize = 80;
+        const xPosition = 65;
+        doc.addImage(pieImage, 'PNG', xPosition, 200, pieSize, pieSize);
+        
+        // Légende du diagramme circulaire
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        let legendY = 200;
+        chartData.labels.forEach((label, index) => {
+          const value = chartData.datasets[0].data[index];
+          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+          doc.text(`• ${label}: ${value} (${percentage})`, 150, legendY);
+          legendY += 6;
+        });
+      } else {
+        doc.setFontSize(12);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Diagramme circulaire non disponible', 20, 200);
+      }
+
+      // Pied de page page 2
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Page 2/2 - Diagrammes et Analyse', 105, 290, { align: 'center' });
+
+      // ==================== TÉLÉCHARGEMENT ====================
+      
+      // Sauvegarder le PDF
+      const fileName = `statistiques-${selectedCenterName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      
       Swal.fire({
-        icon: 'warning',
-        title: 'Aucune donnée',
-        text: 'Aucune statistique de centre disponible',
+        icon: 'success',
+        title: 'PDF Généré avec Succès',
+        html: `
+          <div class="text-center">
+            <p>Le rapport complet a été téléchargé</p>
+            <p class="text-sm text-gray-600">Fichier: ${fileName}</p>
+          </div>
+        `,
+        timer: 3000,
+        showConfirmButton: false,
+        background: '#f8fafc'
+      });
+
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur de Génération',
+        text: 'Échec de la génération du PDF avec diagrammes',
         confirmButtonColor: '#1e40af'
       });
-      return;
     }
-
-    const doc = new jsPDF();
-    
-    // En-tête
-    doc.setFillColor(30, 64, 175);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text('STATISTIQUES GLOBALES DES CENTRES', 105, 20, { align: 'center' });
-    doc.setFontSize(14);
-    doc.text('Rapport Complet', 105, 30, { align: 'center' });
-    
-    // Date
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(10);
-    doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 105, 37, { align: 'center' });
-    
-    // Tableau des centres
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(16);
-    doc.text('STATISTIQUES PAR CENTRE', 20, 55);
-    
-    const tableData = centerStats.map(center => [
-      center.name,
-      center.statistics?.Disponible || 0,
-      center.statistics?.['En Stage'] || 0,
-      center.statistics?.['En Travail'] || 0,
-      (center.statistics?.Disponible || 0) + (center.statistics?.['En Stage'] || 0) + (center.statistics?.['En Travail'] || 0)
-    ]);
-
-    // Totaux
-    const totals = tableData.reduce((acc, row) => {
-      return [
-        '',
-        acc[1] + row[1],
-        acc[2] + row[2],
-        acc[3] + row[3],
-        acc[4] + row[4]
-      ];
-    }, ['TOTAL', 0, 0, 0, 0]);
-
-    doc.autoTable({
-      startY: 60,
-      head: [['Centre', 'Disponible', 'En Stage', 'En Travail', 'Total']],
-      body: [...tableData, totals],
-      theme: 'grid',
-      headStyles: {
-        fillColor: [30, 64, 175],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      footStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      styles: {
-        fontSize: 10,
-        cellPadding: 3
-      },
-      alternateRowStyles: {
-        fillColor: [240, 240, 240]
-      }
-    });
-
-    // Pied de page
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
-      doc.text(`Page ${i} / ${pageCount}`, 105, 290, { align: 'center' });
-    }
-
-    doc.save(`statistiques-globales-centres-${new Date().toISOString().split('T')[0]}.pdf`);
-    
-    Swal.fire({
-      icon: 'success',
-      title: 'PDF Généré',
-      text: 'Le rapport global a été téléchargé',
-      timer: 2000,
-      showConfirmButton: false,
-      background: '#f8fafc'
-    });
   };
+
+  // 🟦 Fonction utilitaire pour obtenir le nom du centre en toute sécurité
+  const getCenterName = (center) => {
+    return center?.name || center?.center || 'Centre sans nom';
+  };
+
+  // 🟦 Charger les statistiques de tous les centres avec la nouvelle API
+  const loadAllCentersStats = async () => {
+    try {
+      setGlobalLoading(true);
+      // Utiliser la nouvelle API optimisée
+      const response = await axios.get("https://ihsas-back.vercel.app/api/stats/centers");
+      
+      console.log("Données reçues de l'API:", response.data);
+      
+      // Vérifier la structure des données et formater
+      const formattedStats = response.data.centers.map(center => {
+        const centerName = center?.center || center?.name || 'Centre sans nom';
+        
+        return {
+          _id: center._id || `center-${Math.random()}`,
+          name: centerName,
+          statistics: {
+            Disponible: center.Disponible || 0,
+            'En Stage': center['En Stage'] || 0,
+            'En Travail': center['En Travail'] || 0
+          },
+          total: center.total || 0,
+          performance: center.performance || 0
+        };
+      }).filter(center => center.name !== 'Centre sans nom');
+      
+      setCenterStats(formattedStats);
+      
+    } catch (err) {
+      console.error('Erreur lors du chargement des statistiques globales:', err);
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  // Charger les statistiques globales au chargement du composant
+  useEffect(() => {
+    if (centers.length > 0) {
+      loadAllCentersStats();
+    }
+  }, [centers]);
 
   const handleCenterChange = (e) => {
     const centerId = e.target.value;
@@ -301,34 +449,41 @@ export default function Dashboard() {
     }
   };
 
+  // Fonction pour recharger les statistiques globales
+  const refreshGlobalStats = () => {
+    loadAllCentersStats();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         {/* En-tête avec boutons d'export */}
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-4xl font-bold text-blue-800 mb-4">
-            📊 Tableau de Bord des Statistiques
+            <FontAwesomeIcon icon={faChartBar} className="mr-3" />
+            Tableau de Bord des Statistiques
           </h1>
           <p className="text-lg text-blue-600 mb-6">
             Visualisez les données de vos centres de formation
           </p>
           
-          {/* Boutons d'export */}
+          {/* Boutons d'export - SEULEMENT pour le centre sélectionné */}
           <div className="flex flex-wrap gap-4 justify-center">
             <button
-              onClick={exportAllCentersPDF}
-              disabled={centerStats.length === 0}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"
-            >
-              📋 Exporter Tous les Centres (PDF)
-            </button>
-            
-            <button
               onClick={exportToPDF}
-              disabled={!stats}
+              disabled={!stats || !chartData}
               className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"
             >
-              📊 Exporter Ce Centre (PDF)
+              <FontAwesomeIcon icon={faFilePdf} />
+              Exporter Rapport Complet (PDF)
+            </button>
+            <button
+              onClick={refreshGlobalStats}
+              disabled={globalLoading}
+              className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 shadow-lg"
+            >
+              <FontAwesomeIcon icon={faSync} className={globalLoading ? "animate-spin" : ""} />
+              {globalLoading ? "Chargement..." : "Actualiser les Statistiques"}
             </button>
           </div>
         </div>
@@ -336,6 +491,7 @@ export default function Dashboard() {
         {/* Sélection du centre */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 transition-all duration-300 hover:shadow-xl">
           <label className="block text-lg font-semibold text-blue-800 mb-4">
+            <FontAwesomeIcon icon={faBuilding} className="mr-2" />
             Sélectionnez un Centre de Formation
           </label>
           <select
@@ -353,8 +509,8 @@ export default function Dashboard() {
           </select>
           {loading && (
             <div className="mt-4 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
-              <span className="ml-3 text-blue-700 font-medium">Chargement...</span>
+              <FontAwesomeIcon icon={faSync} className="animate-spin text-blue-700 mr-3" />
+              <span className="text-blue-700 font-medium">Chargement...</span>
             </div>
           )}
         </div>
@@ -363,49 +519,111 @@ export default function Dashboard() {
         {centerStats.length > 0 && (
           <div className="mb-12 animate-slide-up">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-blue-800">
-                📈 Aperçu de Tous les Centres
-              </h2>
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                {centerStats.length} Centres
-              </span>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold text-blue-800">
+                  <FontAwesomeIcon icon={faTrophy} className="mr-3" />
+                  Classement des Centres par Performance
+                </h2>
+                {globalLoading && (
+                  <FontAwesomeIcon icon={faSync} className="animate-spin text-blue-700" />
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                  {centerStats.length} Centres
+                </span>
+                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                  Performance: {centerStats.reduce((sum, center) => sum + (center.performance || 0), 0)}
+                </span>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {centerStats.slice(0, 6).map((center, index) => (
-                <div 
-                  key={center._id} 
-                  className="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-l-4 border-blue-500"
-                >
-                  <h3 className="text-lg font-semibold text-blue-800 mb-4 truncate">
-                    {center.name}
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-600">Disponible:</span>
-                      <span className="font-bold text-blue-700">{center.statistics?.Disponible || 0}</span>
+              {centerStats.map((center, index) => {
+                const centerName = getCenterName(center);
+                return (
+                  <div 
+                    key={center._id} 
+                    className={`bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-l-4 ${
+                      index === 0 ? 'border-yellow-500 bg-yellow-50' : 
+                      index === 1 ? 'border-gray-400 bg-gray-50' : 
+                      index === 2 ? 'border-orange-500 bg-orange-50' : 'border-blue-500'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-semibold text-blue-800 truncate flex-1">
+                        {index < 3 && (
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold mr-2 ${
+                            index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                            index === 1 ? 'bg-gray-100 text-gray-800' :
+                            'bg-orange-100 text-orange-800'
+                          }`}>
+                            {index === 0 ? <FontAwesomeIcon icon={faTrophy} /> :
+                            index === 1 ? <FontAwesomeIcon icon={faMedal} /> :
+                            <FontAwesomeIcon icon={faStar} />}
+                          </span>
+                        )}
+                        {centerName}
+                      </h3>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                        index === 1 ? 'bg-gray-100 text-gray-800' :
+                        index === 2 ? 'bg-orange-100 text-orange-800' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        #{index + 1}
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-green-600">En Stage:</span>
-                      <span className="font-bold text-green-700">{center.statistics?.['En Stage'] || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-cyan-600">En Travail:</span>
-                      <span className="font-bold text-cyan-700">{center.statistics?.['En Travail'] || 0}</span>
-                    </div>
-                    <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between items-center font-bold">
-                        <span className="text-gray-700">Total:</span>
-                        <span className="text-blue-800">
-                          {(center.statistics?.Disponible || 0) + 
-                           (center.statistics?.['En Stage'] || 0) + 
-                           (center.statistics?.['En Travail'] || 0)}
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-blue-600">
+                          <FontAwesomeIcon icon={faUsers} className="mr-2" />
+                          Disponible:
                         </span>
+                        <span className="font-bold text-blue-700">{center.statistics?.Disponible || 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-green-600">
+                          <FontAwesomeIcon icon={faGraduationCap} className="mr-2" />
+                          En Stage:
+                        </span>
+                        <span className="font-bold text-green-700">{center.statistics?.['En Stage'] || 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyan-600">
+                          <FontAwesomeIcon icon={faBriefcase} className="mr-2" />
+                          En Travail:
+                        </span>
+                        <span className="font-bold text-cyan-700">{center.statistics?.['En Travail'] || 0}</span>
+                      </div>
+                      
+                      {/* Barre de performance */}
+                      <div className="pt-2 mt-2 border-t">
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="text-gray-600">Performance:</span>
+                          <span className="font-bold text-green-600">{center.performance || 0}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-500 h-2 rounded-full" 
+                            style={{ 
+                              width: `${center.total > 0 ? ((center.performance / center.total) * 100) : 0}%` 
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between items-center font-bold">
+                          <span className="text-gray-700">Total:</span>
+                          <span className="text-blue-800">{center.total || 0}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             {centerStats.length > 6 && (
@@ -426,7 +644,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-blue-800">Disponible</h3>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 text-xl">👥</span>
+                  <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xl" />
                 </div>
               </div>
               <p className="text-3xl font-bold text-blue-700 mt-4">{stats.Disponible}</p>
@@ -438,7 +656,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-green-800">En Stage</h3>
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 text-xl">🎓</span>
+                  <FontAwesomeIcon icon={faGraduationCap} className="text-green-600 text-xl" />
                 </div>
               </div>
               <p className="text-3xl font-bold text-green-700 mt-4">{stats["En Stage"]}</p>
@@ -450,7 +668,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-cyan-800">En Travail</h3>
                 <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
-                  <span className="text-cyan-600 text-xl">💼</span>
+                  <FontAwesomeIcon icon={faBriefcase} className="text-cyan-600 text-xl" />
                 </div>
               </div>
               <p className="text-3xl font-bold text-cyan-700 mt-4">{stats["En Travail"]}</p>
@@ -466,7 +684,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-blue-800 flex items-center">
-                  <span className="mr-3">📈</span>
+                  <FontAwesomeIcon icon={faChartBar} className="mr-3" />
                   Répartition des Candidats
                 </h2>
                 <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
@@ -475,6 +693,7 @@ export default function Dashboard() {
               </div>
               <div className="h-80">
                 <Bar
+                  ref={barChartRef}
                   data={{
                     labels: chartData.labels,
                     datasets: [{
@@ -511,43 +730,55 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-blue-800 flex items-center">
-                  <span className="mr-3">🟢</span>
+                  <FontAwesomeIcon icon={faChartPie} className="mr-3" />
                   Pourcentage des Candidats
                 </h2>
                 <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
                   Diagramme Circulaire
                 </span>
               </div>
-              <div className="h-96 flex justify-center">
-                <Pie
-                  data={{
-                    labels: chartData.labels,
-                    datasets: [{
-                      data: chartData.datasets[0].data,
-                      backgroundColor: ["#1e40af", "#059669", "#0d9488"],
-                      borderColor: ["#1e3a8a", "#047857", "#0f766e"],
-                      borderWidth: 3,
-                      hoverOffset: 15
-                    }]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: 'bottom',
-                        labels: {
-                          font: {
-                            family: 'inherit',
-                            size: 14
-                          },
-                          padding: 20,
-                          color: '#1e40af'
+              <div className="h-96 flex justify-center items-center">
+                <div className="w-full max-w-md h-full flex justify-center">
+                  <Pie
+                    ref={pieChartRef}
+                    data={{
+                      labels: chartData.labels,
+                      datasets: [{
+                        data: chartData.datasets[0].data,
+                        backgroundColor: ["#1e40af", "#059669", "#0d9488"],
+                        borderColor: ["#1e3a8a", "#047857", "#0f766e"],
+                        borderWidth: 3,
+                        hoverOffset: 15
+                      }]
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      aspectRatio: 1,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                          labels: {
+                            font: {
+                              family: 'inherit',
+                              size: 14
+                            },
+                            padding: 20,
+                            color: '#1e40af'
+                          }
+                        }
+                      },
+                      layout: {
+                        padding: {
+                          top: 20,
+                          bottom: 20,
+                          left: 20,
+                          right: 20
                         }
                       }
-                    }
-                  }}
-                />
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -557,7 +788,7 @@ export default function Dashboard() {
         {!selectedCenter && !loading && (
           <div className="text-center py-16 animate-pulse">
             <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-4xl">📊</span>
+              <FontAwesomeIcon icon={faChartBar} className="text-4xl text-blue-600" />
             </div>
             <h3 className="text-2xl font-bold text-blue-800 mb-4">
               Sélectionnez un Centre
