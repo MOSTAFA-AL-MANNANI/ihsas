@@ -10,7 +10,11 @@ import {
   faFilePdf, 
   faPaperPlane,
   faBuilding,
-  faRocket
+  faRocket,
+  faCheckCircle,
+  faTimesCircle,
+  faExclamationTriangle,
+  faFileUpload
 } from "@fortawesome/free-solid-svg-icons";
 import { faLinkedin } from "@fortawesome/free-brands-svg-icons";
 
@@ -22,38 +26,162 @@ export default function Add() {
   const [cover, setCover] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [filieres, setFilieres] = useState([]);
-const [centers, setCenters] = useState([]);
+  const [centers, setCenters] = useState([]);
+  const [filiere, setFiliere] = useState("");
+  const [center, setCenter] = useState("");
 
-const [filiere, setFiliere] = useState("");
-const [center, setCenter] = useState("");
+  // États pour la validation des fichiers
+  const [cvValidation, setCvValidation] = useState({ isValid: true, message: "" });
+  const [coverValidation, setCoverValidation] = useState({ isValid: true, message: "" });
 
-useEffect(() => {
-  const loadData = async () => {
-    const c = await axios.get("https://ihsas-back.vercel.app/api/center");
-    setCenters(c.data);
+  // Configuration de la validation
+  const MAX_FILE_SIZE = 2000 * 1024; // 2000 Ko en bytes
+  const ALLOWED_TYPES = ['application/pdf'];
+
+  console.log(`filier:${filiere}, center:${center}`);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const c = await axios.get("https://ihsas-back.vercel.app/api/center");
+        setCenters(c.data);
+      } catch (err) {
+        console.error("Erreur chargement centres:", err);
+        showError("Erreur lors du chargement des centres");
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // جلب filières حسب المركز
+  const loadFilieresByCenter = async (centerId) => {
+    if (!centerId) {
+      setFilieres([]);
+      return;
+    }
+
+    try {
+      const res = await axios.get(`https://ihsas-back.vercel.app/api/filiere/by-center/${centerId}`);
+      setFilieres(res.data);
+    } catch (err) {
+      console.log(err);
+      showError("Erreur lors du chargement des filières");
+    }
   };
 
-  loadData();
-}, []);
+  // Fonction de validation des fichiers
+  const validateFile = (file, fieldName) => {
+    const validation = { isValid: true, message: "" };
 
-// جلب filières حسب المركز
-const loadFilieresByCenter = async (centerId) => {
-  if (!centerId) {
-    setFilieres([]);
-    return;
-  }
+    // Vérifier le type de fichier
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      validation.isValid = false;
+      validation.message = "Format PDF requis";
+      return validation;
+    }
 
-  try {
-    const res = await axios.get(`https://ihsas-back.vercel.app/api/filiere/by-center/${centerId}`);
-    setFilieres(res.data);
-  } catch (err) {
-    console.log(err);
-  }
-};
+    // Vérifier la taille du fichier
+    if (file.size > MAX_FILE_SIZE) {
+      validation.isValid = false;
+      const fileSizeInKB = Math.round(file.size / 1024);
+      validation.message = `Trop volumineux (${fileSizeInKB} Ko)`;
+      return validation;
+    }
 
+    // Vérifier si le fichier n'est pas vide
+    if (file.size === 0) {
+      validation.isValid = false;
+      validation.message = "Fichier vide";
+      return validation;
+    }
+
+    validation.isValid = true;
+    validation.message = `Valide (${Math.round(file.size / 1024)} Ko)`;
+    return validation;
+  };
+
+  // Gestionnaire pour le CV
+  const handleCvChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const validation = validateFile(file, "CV");
+      setCvValidation(validation);
+      
+      if (validation.isValid) {
+        setCv(file);
+      } else {
+        setCv(null);
+        e.target.value = ''; // Reset l'input file
+        showFileError(validation.message, "CV");
+      }
+    }
+  };
+
+  // Gestionnaire pour la lettre de motivation
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const validation = validateFile(file, "Lettre de motivation");
+      setCoverValidation(validation);
+      
+      if (validation.isValid) {
+        setCover(file);
+      } else {
+        setCover(null);
+        e.target.value = ''; // Reset l'input file
+        showFileError(validation.message, "Lettre de motivation");
+      }
+    }
+  };
+
+  // Alertes personnalisées pour les fichiers
+  const showFileError = (message, fileType) => {
+    Swal.fire({
+      icon: 'error',
+      title: `Erreur - ${fileType}`,
+      html: `
+        <div class="text-center">
+          <p class="mb-2 font-semibold">${message}</p>
+          <p class="text-sm text-gray-600">Taille maximale: 2000 Ko</p>
+        </div>
+      `,
+      confirmButtonColor: '#ef4444',
+      background: '#f8fafc'
+    });
+  };
+
+  const showError = (message) => {
+    Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: message,
+      confirmButtonColor: '#ef4444',
+      background: '#f8fafc'
+    });
+  };
+
+  // Vérification finale avant soumission
+  const validateForm = () => {
+    if (!cv) {
+      showFileError("Veuillez sélectionner un CV", "CV");
+      return false;
+    }
+    if (!cover) {
+      showFileError("Veuillez sélectionner une lettre de motivation", "Lettre de motivation");
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation finale
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -63,9 +191,8 @@ const loadFilieresByCenter = async (centerId) => {
       formData.append("portfolio", portfolio);
       formData.append("filiere", filiere);
       formData.append("center", center);
-
-      if (cv) formData.append("cv", cv);
-      if (cover) formData.append("cover", cover);
+      formData.append("cv", cv);
+      formData.append("cover", cover);
 
       const res = await axios.post("https://ihsas-back.vercel.app/api/candidat/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -73,11 +200,25 @@ const loadFilieresByCenter = async (centerId) => {
 
       await Swal.fire({
         icon: 'success',
-        title: 'Succès!',
-        text: res.data.message,
+        title: 'Candidature Envoyée!',
+        html: `
+          <div class="text-center">
+            <p class="text-lg font-semibold mb-4">${res.data.message}</p>
+            <div class="flex justify-center gap-6 mt-4">
+              <div class="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                <FontAwesomeIcon icon={faCheckCircle} />
+                <span class="text-sm font-medium">CV: ${Math.round(cv.size / 1024)} Ko</span>
+              </div>
+              <div class="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                <FontAwesomeIcon icon={faCheckCircle} />
+                <span class="text-sm font-medium">Lettre: ${Math.round(cover.size / 1024)} Ko</span>
+              </div>
+            </div>
+          </div>
+        `,
         confirmButtonColor: '#2563eb',
         background: '#f8fafc',
-        timer: 3000,
+        timer: 5000,
         showConfirmButton: true
       });
 
@@ -85,8 +226,12 @@ const loadFilieresByCenter = async (centerId) => {
       setFullName("");
       setLinkedin("");
       setPortfolio("");
+      setFiliere("");
+      setCenter("");
       setCv(null);
       setCover(null);
+      setCvValidation({ isValid: true, message: "" });
+      setCoverValidation({ isValid: true, message: "" });
       document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
       
     } catch (err) {
@@ -106,7 +251,7 @@ const loadFilieresByCenter = async (centerId) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex flex-col items-center justify-start py-8 px-4">
       {/* Header avec Logos */}
-      <div className="w-full max-w-4xl mb-12">
+      <div className="w-full max-w-4xl mb-8">
         <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16 lg:gap-24 mb-8">
           {/* Logo Jadara */}
           <div className="group flex items-center gap-4 p-4 rounded-2xl bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-500 hover:-translate-y-1 border border-blue-100">
@@ -124,7 +269,7 @@ const loadFilieresByCenter = async (centerId) => {
         </div>
 
         {/* Titre Principal */}
-        <div className="text-center mb-4">
+        <div className="text-center mb-6">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent mb-4">
             Rejoignez Notre Équipe
           </h1>
@@ -147,120 +292,127 @@ const loadFilieresByCenter = async (centerId) => {
         <div className="space-y-6">
           {/* Champ Nom Complet */}
           <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+            <label className="block text-sm font-semibold text-blue-700 mb-3 ml-1">
+              <FontAwesomeIcon icon={faUser} className="mr-2 text-blue-600" />
               Nom Complet *
             </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faUser} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
-              />
-              <input
-                type="text"
-                placeholder="Votre nom complet"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
-                required
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Votre nom complet"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="border-2 border-blue-200 rounded-2xl p-4 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/80 backdrop-blur-sm"
+              required
+            />
           </div>
-{/* Select Center */}
-<div className="group">
-  <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-    Choisir le Centre *
-  </label>
-  <div className="relative">
-    <FontAwesomeIcon 
-      icon={faBuilding} 
-      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 transition-colors duration-300" 
-    />
-<select
-  value={center}
-  onChange={(e) => {
-    const selectedCenter = e.target.value;
-    setCenter(selectedCenter);
-    setFiliere("");                  // تفريغ الفيلير القديم
-    loadFilieresByCenter(selectedCenter);  // جلب الفيلير الجديد
-  }}
-  required
-  className="border border-gray-300 rounded-2xl p-4 pl-12 w-full bg-white/50 backdrop-blur-sm 
-  focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
-  hover:border-blue-400 transition-all duration-300"
->
-  <option value="">-- Sélectionner le centre --</option>
-  {centers.map(c => (
-    <option key={c._id} value={c._id}>{c.name}</option>
-  ))}
-</select>
 
-  </div>
-</div>
+          {/* Select Center */}
+          <div className="group">
+            <label className="block text-sm font-semibold text-blue-700 mb-3 ml-1">
+              <FontAwesomeIcon icon={faBuilding} className="mr-2 text-blue-600" />
+              Choisir le Centre *
+            </label>
+            <select
+              value={center}
+              onChange={(e) => {
+                const selectedCenter = e.target.value;
+                setCenter(selectedCenter);
+                setFiliere("");
+                loadFilieresByCenter(selectedCenter);
+              }}
+              required
+              className="border-2 border-blue-200 rounded-2xl p-4 w-full bg-white/80 backdrop-blur-sm 
+              focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
+              hover:border-blue-400 transition-all duration-300"
+            >
+              <option value="">-- Sélectionner le centre --</option>
+              {centers.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
           
           {/* Select Filiere */}
-<div className="group">
-  <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-    Choisir la Filière *
-  </label>
-  <div className="relative">
-    <FontAwesomeIcon 
-      icon={faRocket} 
-      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 transition-colors duration-300" 
-    />
-    <select
-      value={filiere}
-      onChange={(e) => setFiliere(e.target.value)}
-      required
-      className="border border-gray-300 rounded-2xl p-4 pl-12 w-full bg-white/50 backdrop-blur-sm 
-      focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
-      hover:border-blue-400 transition-all duration-300"
-    >
-      <option value="">-- Sélectionner la filière --</option>
-      {filieres.map(f => (
-        <option key={f._id} value={f._id}>{f.name}</option>
-      ))}
-    </select>
-  </div>
-</div>
-
-
-
-
-          {/* Champ CV */}
           <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-              Curriculum Vitae (CV) (PDF) *
+            <label className="block text-sm font-semibold text-blue-700 mb-3 ml-1">
+              <FontAwesomeIcon icon={faRocket} className="mr-2 text-blue-600" />
+              Choisir la Filière *
             </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faFilePdf} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300 z-10" 
-              />
+            <select
+              value={filiere}
+              onChange={(e) => setFiliere(e.target.value)}
+              required
+              className="border-2 border-blue-200 rounded-2xl p-4 w-full bg-white/80 backdrop-blur-sm 
+              focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
+              hover:border-blue-400 transition-all duration-300"
+            >
+              <option value="">-- Sélectionner la filière --</option>
+              {filieres.map(f => (
+                <option key={f._id} value={f._id}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Section Fichiers avec informations intégrées */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FontAwesomeIcon icon={faFileUpload} className="text-blue-600 text-xl" />
+              <div>
+                <h3 className="font-semibold text-blue-800 text-lg">Documents à Fournir</h3>
+                <p className="text-blue-600 text-sm">Format PDF - Maximum 2000 Ko par fichier</p>
+              </div>
+            </div>
+
+            {/* Champ CV */}
+            <div className="group mb-6">
+              <label className="block text-sm font-semibold text-blue-700 mb-3">
+                <FontAwesomeIcon icon={faFilePdf} className="mr-2 text-blue-600" />
+                Curriculum Vitae (CV) *
+                <span className="ml-2 text-xs font-normal text-blue-500">
+                  {cvValidation.message && (
+                    <span className={`inline-flex items-center gap-1 ${cvValidation.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                      <FontAwesomeIcon icon={cvValidation.isValid ? faCheckCircle : faTimesCircle} />
+                      {cvValidation.message}
+                    </span>
+                  )}
+                </span>
+              </label>
               <input
                 type="file"
                 accept=".pdf"
-                onChange={(e) => setCv(e.target.files[0])}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                onChange={handleCvChange}
+                className={`border-2 rounded-2xl p-4 w-full focus:outline-none focus:ring-3 transition-all duration-300 bg-white/80 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold cursor-pointer ${
+                  cvValidation.isValid 
+                    ? 'border-blue-200 focus:border-blue-500 focus:ring-blue-500/50 hover:border-blue-400 file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200' 
+                    : 'border-red-300 focus:border-red-500 focus:ring-red-500/50 hover:border-red-400 file:bg-red-100 file:text-red-700 hover:file:bg-red-200'
+                }`}
                 required
               />
             </div>
-          </div>
 
-          {/* Champ Lettre de Motivation */}
-          <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-              Lettre de Motivation (PDF) *
-            </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faFilePdf} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300 z-10" 
-              />
+            {/* Champ Lettre de Motivation */}
+            <div className="group">
+              <label className="block text-sm font-semibold text-blue-700 mb-3">
+                <FontAwesomeIcon icon={faFilePdf} className="mr-2 text-blue-600" />
+                Lettre de Motivation *
+                <span className="ml-2 text-xs font-normal text-blue-500">
+                  {coverValidation.message && (
+                    <span className={`inline-flex items-center gap-1 ${coverValidation.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                      <FontAwesomeIcon icon={coverValidation.isValid ? faCheckCircle : faTimesCircle} />
+                      {coverValidation.message}
+                    </span>
+                  )}
+                </span>
+              </label>
               <input
                 type="file"
                 accept=".pdf"
-                onChange={(e) => setCover(e.target.files[0])}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                onChange={handleCoverChange}
+                className={`border-2 rounded-2xl p-4 w-full focus:outline-none focus:ring-3 transition-all duration-300 bg-white/80 backdrop-blur-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold cursor-pointer ${
+                  coverValidation.isValid 
+                    ? 'border-blue-200 focus:border-blue-500 focus:ring-blue-500/50 hover:border-blue-400 file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200' 
+                    : 'border-red-300 focus:border-red-500 focus:ring-red-500/50 hover:border-red-400 file:bg-red-100 file:text-red-700 hover:file:bg-red-200'
+                }`}
                 required
               />
             </div>
@@ -268,53 +420,70 @@ const loadFilieresByCenter = async (centerId) => {
 
           {/* Champ LinkedIn */}
           <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+            <label className="block text-sm font-semibold text-blue-700 mb-3 ml-1">
+              <FontAwesomeIcon icon={faLinkedin} className="mr-2 text-blue-600" />
               LinkedIn *
             </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faLinkedin} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
-              />
-              <input
-                type="url"
-                placeholder="https://linkedin.com/in/votre-profil"
-                value={linkedin}
-                onChange={(e) => setLinkedin(e.target.value)}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
-                required
-              />
-            </div>
+            <input
+              type="url"
+              placeholder="https://linkedin.com/in/votre-profil"
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+              className="border-2 border-blue-200 rounded-2xl p-4 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/80 backdrop-blur-sm"
+              required
+            />
           </div>
 
           {/* Champ Portfolio */}
           <div className="group">
-            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+            <label className="block text-sm font-semibold text-blue-700 mb-3 ml-1">
+              <FontAwesomeIcon icon={faLink} className="mr-2 text-blue-600" />
               Portfolio *
             </label>
-            <div className="relative">
-              <FontAwesomeIcon 
-                icon={faLink} 
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 group-hover:text-amber-500 transition-colors duration-300" 
-              />
-              <input
-                type="url"
-                placeholder="https://votre-portfolio.com"
-                value={portfolio}
-                onChange={(e) => setPortfolio(e.target.value)}
-                className="border border-gray-300 rounded-2xl p-4 pl-12 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/50 backdrop-blur-sm"
-                required
-             />
-            </div>
+            <input
+              type="url"
+              placeholder="https://votre-portfolio.com"
+              value={portfolio}
+              onChange={(e) => setPortfolio(e.target.value)}
+              className="border-2 border-blue-200 rounded-2xl p-4 w-full focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 hover:border-blue-400 bg-white/80 backdrop-blur-sm"
+              required
+            />
           </div>
+        </div>
 
+        {/* Indicateurs de validation */}
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-300 ${
+            cv && cvValidation.isValid 
+              ? 'bg-green-50 text-green-700 border-green-300' 
+              : cv 
+                ? 'bg-red-50 text-red-700 border-red-300'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
+          }`}>
+            <FontAwesomeIcon icon={cv && cvValidation.isValid ? faCheckCircle : faFilePdf} />
+            <span className="text-sm font-medium">
+              {cv ? (cvValidation.isValid ? 'CV Validé' : 'CV Invalid') : 'CV Requis'}
+            </span>
+          </div>
+          <div className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-300 ${
+            cover && coverValidation.isValid 
+              ? 'bg-green-50 text-green-700 border-green-300' 
+              : cover 
+                ? 'bg-red-50 text-red-700 border-red-300'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
+          }`}>
+            <FontAwesomeIcon icon={cover && coverValidation.isValid ? faCheckCircle : faFilePdf} />
+            <span className="text-sm font-medium">
+              {cover ? (coverValidation.isValid ? 'Lettre Validée' : 'Lettre Invalide') : 'Lettre Requise'}
+            </span>
+          </div>
         </div>
 
         {/* Bouton de soumission */}
         <button
           type="submit"
-          disabled={isLoading}
-          className="w-full mt-8 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-500 transform hover:-translate-y-1 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg group relative overflow-hidden"
+          disabled={isLoading || !cvValidation.isValid || !coverValidation.isValid}
+          className="w-full mt-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-6 rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-500 transform hover:-translate-y-1 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg group relative overflow-hidden"
         >
           <div className="relative z-10 flex items-center justify-center gap-3">
             <FontAwesomeIcon 
@@ -326,8 +495,6 @@ const loadFilieresByCenter = async (centerId) => {
           <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         </button>
       </form>
-
-
     </div>
   );
 }
