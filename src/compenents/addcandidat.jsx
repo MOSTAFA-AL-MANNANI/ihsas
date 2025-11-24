@@ -29,14 +29,28 @@ const [center, setCenter] = useState("");
 
 useEffect(() => {
   const loadData = async () => {
-    const f = await axios.get("https://ihsas-back.vercel.app/api/filiere");
     const c = await axios.get("https://ihsas-back.vercel.app/api/center");
-    setFilieres(f.data);
     setCenters(c.data);
   };
 
   loadData();
 }, []);
+
+// جلب filières حسب المركز
+const loadFilieresByCenter = async (centerId) => {
+  if (!centerId) {
+    setFilieres([]);
+    return;
+  }
+
+  try {
+    const res = await axios.get(`https://ihsas-back.vercel.app/api/filiere/by-center/${centerId}`);
+    setFilieres(res.data);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -151,7 +165,37 @@ useEffect(() => {
               />
             </div>
           </div>
+{/* Select Center */}
+<div className="group">
+  <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
+    Choisir le Centre *
+  </label>
+  <div className="relative">
+    <FontAwesomeIcon 
+      icon={faBuilding} 
+      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 transition-colors duration-300" 
+    />
+<select
+  value={center}
+  onChange={(e) => {
+    const selectedCenter = e.target.value;
+    setCenter(selectedCenter);
+    setFiliere("");                  // تفريغ الفيلير القديم
+    loadFilieresByCenter(selectedCenter);  // جلب الفيلير الجديد
+  }}
+  required
+  className="border border-gray-300 rounded-2xl p-4 pl-12 w-full bg-white/50 backdrop-blur-sm 
+  focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
+  hover:border-blue-400 transition-all duration-300"
+>
+  <option value="">-- Sélectionner le centre --</option>
+  {centers.map(c => (
+    <option key={c._id} value={c._id}>{c.name}</option>
+  ))}
+</select>
 
+  </div>
+</div>
           
           {/* Select Filiere */}
 <div className="group">
@@ -179,31 +223,7 @@ useEffect(() => {
   </div>
 </div>
 
-{/* Select Center */}
-<div className="group">
-  <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">
-    Choisir le Centre *
-  </label>
-  <div className="relative">
-    <FontAwesomeIcon 
-      icon={faBuilding} 
-      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-600 transition-colors duration-300" 
-    />
-    <select
-      value={center}
-      onChange={(e) => setCenter(e.target.value)}
-      required
-      className="border border-gray-300 rounded-2xl p-4 pl-12 w-full bg-white/50 backdrop-blur-sm 
-      focus:outline-none focus:ring-3 focus:ring-blue-500/50 focus:border-blue-500 
-      hover:border-blue-400 transition-all duration-300"
-    >
-      <option value="">-- Sélectionner le centre --</option>
-      {centers.map(c => (
-        <option key={c._id} value={c._id}>{c.name}</option>
-      ))}
-    </select>
-  </div>
-</div>
+
 
 
           {/* Champ CV */}
@@ -307,7 +327,7 @@ useEffect(() => {
         </button>
       </form>
 
-$
+
     </div>
   );
 }

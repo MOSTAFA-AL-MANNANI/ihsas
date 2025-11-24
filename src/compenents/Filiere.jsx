@@ -1,44 +1,62 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-
-// Import FontAwesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faPlus,
-  faEdit,
-  faTrash,
-  faSave,
-  faTimes,
-  faGraduationCap,
-  faList,
-  faSearch,
-  faSync
+import { 
+  faEdit, 
+  faTrash, 
+  faPlus, 
+  faGraduationCap, 
+  faBuilding,
+  faListAlt,
+  faSync,
+  faSearch
 } from "@fortawesome/free-solid-svg-icons";
 
-// ==========================
-// 📌 Component: CRUD Filiere
-// ==========================
-export function FilierePage() {
-  const api = "https://ihsas-back.vercel.app/api/filiere";
+export default function FiliereManager() {
   const [filieres, setFilieres] = useState([]);
-  const [form, setForm] = useState({ name: "", description: "" });
-  const [editingId, setEditingId] = useState(null);
+  const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const load = async () => {
-    setLoading(true);
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    center: "",
+  });
+
+  const [editingId, setEditingId] = useState(null);
+
+  // Charger tous les centres
+  useEffect(() => {
+    axios
+      .get("http://ihsas-back.vercel.app/api/center")
+      .then((res) => setCenters(res.data))
+      .catch((err) => {
+        console.error(err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Échec du chargement des centres',
+          confirmButtonColor: '#1e40af',
+          background: '#f8fafc'
+        });
+      });
+  }, []);
+
+  // Charger les filières
+  const loadFilieres = async () => {
     try {
-      const res = await axios.get(api);
+      setLoading(true);
+      const res = await axios.get("http://ihsas-back.vercel.app/api/filiere");
       setFilieres(res.data);
-    } catch (error) {
-      console.error("Error loading filieres:", error);
-      await Swal.fire({
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
         icon: 'error',
         title: 'Erreur',
-        text: 'Erreur lors du chargement des filières',
-        confirmButtonColor: '#dc2626',
+        text: 'Échec du chargement des filières',
+        confirmButtonColor: '#1e40af',
         background: '#f8fafc'
       });
     } finally {
@@ -46,370 +64,418 @@ export function FilierePage() {
     }
   };
 
-  useEffect(() => { 
-    load(); 
+  useEffect(() => {
+    loadFilieres();
   }, []);
-
-  const save = async () => {
-    if (!form.name.trim()) {
-      await Swal.fire({
-        icon: 'warning',
-        title: 'Champ requis',
-        text: 'Le nom de la filière est obligatoire',
-        confirmButtonColor: '#f59e0b',
-        background: '#f8fafc'
-      });
-      return;
-    }
-
-    try {
-      if (editingId) {
-        await axios.put(`${api}/${editingId}`, form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Modifié!',
-          text: 'Filière mise à jour avec succès',
-          confirmButtonColor: '#10b981',
-          background: '#f8fafc',
-          timer: 1500
-        });
-      } else {
-        await axios.post(api, form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Ajouté!',
-          text: 'Filière ajoutée avec succès',
-          confirmButtonColor: '#10b981',
-          background: '#f8fafc',
-          timer: 1500
-        });
-      }
-      
-      setForm({ name: "", description: "" });
-      setEditingId(null);
-      load();
-    } catch (error) {
-      console.error("Error saving filiere:", error);
-      await Swal.fire({
-        icon: 'error',
-        title: 'Erreur',
-        text: error.response?.data?.message || 'Erreur lors de la sauvegarde',
-        confirmButtonColor: '#dc2626',
-        background: '#f8fafc'
-      });
-    }
-  };
-
-  const edit = (f) => {
-    setForm({ name: f.name, description: f.description });
-    setEditingId(f._id);
-  };
-
-  const remove = async (id) => {
-    const filiereToDelete = filieres.find(f => f._id === id);
-    
-    const result = await Swal.fire({
-      title: 'Confirmer la suppression',
-      html: `
-        <div class="text-center">
-          <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-trash text-red-600 text-xl"></i>
-          </div>
-          <p class="text-gray-700">Voulez-vous vraiment supprimer la filière :</p>
-          <p class="font-bold text-red-600">${filiereToDelete?.name}</p>
-          <p class="text-sm text-gray-500 mt-2">Cette action est irréversible</p>
-        </div>
-      `,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Oui, supprimer',
-      cancelButtonText: 'Annuler',
-      background: '#f8fafc'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await axios.delete(`${api}/${id}`);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Supprimé!',
-          text: 'Filière supprimée avec succès',
-          confirmButtonColor: '#10b981',
-          background: '#f8fafc',
-          timer: 1500
-        });
-        load();
-      } catch (error) {
-        console.error("Error deleting filiere:", error);
-        await Swal.fire({
-          icon: 'error',
-          title: 'Erreur',
-          text: 'Erreur lors de la suppression',
-          confirmButtonColor: '#dc2626',
-          background: '#f8fafc'
-        });
-      }
-    }
-  };
-
-  const cancelEdit = () => {
-    setForm({ name: "", description: "" });
-    setEditingId(null);
-  };
 
   // Filtrer les filières selon la recherche
   const filteredFilieres = filieres.filter(filiere =>
     filiere.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    filiere.description.toLowerCase().includes(searchTerm.toLowerCase())
+    filiere.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    filiere.center?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 p-4 lg:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-2xl shadow-2xl">
-              <FontAwesomeIcon icon={faGraduationCap} className="text-white text-2xl" />
-            </div>
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">
-                Gestion des Filières
-              </h1>
-              <p className="text-gray-600">CRUD complet pour la gestion des filières académiques</p>
-            </div>
-          </div>
+  // Gestion des inputs
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-          <button 
-            onClick={load}
-            disabled={loading}
-            className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-2xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group font-semibold"
-          >
-            <FontAwesomeIcon 
-              icon={loading ? faSync : faSync} 
-              className={`${loading ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform`} 
-            />
-            Actualiser
-          </button>
+  // Ajouter ou modifier
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (editingId) {
+        await axios.put(`http://ihsas-back.vercel.app/api/filiere/${editingId}`, form);
+        Swal.fire({
+          icon: 'success',
+          title: 'Succès',
+          text: 'La filière a été modifiée avec succès.',
+          confirmButtonColor: '#1e40af',
+          background: '#f8fafc',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        setEditingId(null);
+      } else {
+        await axios.post("http://ihsas-back.vercel.app/api/filiere", form);
+        Swal.fire({
+          icon: 'success',
+          title: 'Succès',
+          text: 'La filière a été ajoutée avec succès.',
+          confirmButtonColor: '#1e40af',
+          background: '#f8fafc',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+
+      setForm({ name: "", description: "", center: "" });
+      loadFilieres();
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: 'Une erreur est survenue lors de l\'opération.',
+        confirmButtonColor: '#1e40af',
+        background: '#f8fafc'
+      });
+    }
+  };
+
+  // Remplir le formulaire lors de l'édition
+  const handleEdit = (f) => {
+    setForm({
+      name: f.name,
+      description: f.description || "",
+      center: f.center?._id || "",
+    });
+    setEditingId(f._id);
+    
+    // Scroll vers le formulaire
+    document.getElementById('form-filiere').scrollIntoView({ 
+      behavior: 'smooth' 
+    });
+  };
+
+  // Annuler l'édition
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setForm({ name: "", description: "", center: "" });
+    
+    Swal.fire({
+      icon: 'info',
+      title: 'Modification annulée',
+      text: 'Vous pouvez continuer à ajouter de nouvelles filières.',
+      confirmButtonColor: '#1e40af',
+      background: '#f8fafc',
+      timer: 1500,
+      showConfirmButton: false
+    });
+  };
+
+  // Supprimer filière
+  const handleDelete = async (id) => {
+    const filiereToDelete = filieres.find(f => f._id === id);
+    
+    Swal.fire({
+      title: 'Confirmation de suppression',
+      html: `
+        <div class="text-center">
+          <p>Êtes-vous sûr de vouloir supprimer la filière :</p>
+          <p class="font-bold text-blue-700 mt-2">"${filiereToDelete?.name}"</p>
+          <p class="text-sm text-gray-600 mt-2">Cette action est irréversible.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#1e40af',
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler',
+      background: '#f8fafc',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'px-4 py-2 rounded-lg',
+        cancelButton: 'px-4 py-2 rounded-lg'
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`http://ihsas-back.vercel.app/api/filiere/${id}`);
+          await loadFilieres();
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Supprimée',
+            text: 'La filière a été supprimée avec succès.',
+            confirmButtonColor: '#1e40af',
+            background: '#f8fafc',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } catch (err) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Erreur',
+            text: 'Échec de la suppression de la filière.',
+            confirmButtonColor: '#1e40af',
+            background: '#f8fafc'
+          });
+        }
+      }
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 font-sans">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* En-tête */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <FontAwesomeIcon icon={faGraduationCap} className="text-white text-3xl" />
+          </div>
+          <h1 className="text-4xl font-bold text-blue-800 mb-3">
+            Gestion des Filières
+          </h1>
+          <p className="text-lg text-blue-600 max-w-2xl mx-auto">
+            Gérez et organisez les filières de formation de vos centres
+          </p>
         </div>
 
-        {/* Carte Statistiques */}
+        {/* Carte de statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-blue-100 hover:shadow-3xl transition-all duration-500 group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Total Filières</p>
-                <p className="text-3xl font-black text-blue-600 mt-2">{filieres.length}</p>
-              </div>
-              <div className="bg-blue-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <FontAwesomeIcon icon={faList} className="text-blue-600 text-xl" />
-              </div>
-            </div>
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-l-4 border-blue-500">
+            <FontAwesomeIcon icon={faListAlt} className="text-blue-600 text-2xl mb-3" />
+            <h3 className="text-lg font-semibold text-blue-800">Total des Filières</h3>
+            <p className="text-3xl font-bold text-blue-700 mt-2">{filieres.length}</p>
           </div>
-
-          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-amber-100 hover:shadow-3xl transition-all duration-500 group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">En édition</p>
-                <p className="text-3xl font-black text-amber-500 mt-2">
-                  {editingId ? "1" : "0"}
-                </p>
-              </div>
-              <div className="bg-amber-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <FontAwesomeIcon icon={faEdit} className="text-amber-500 text-xl" />
-              </div>
-            </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-l-4 border-green-500">
+            <FontAwesomeIcon icon={faBuilding} className="text-green-600 text-2xl mb-3" />
+            <h3 className="text-lg font-semibold text-green-800">Centres Actifs</h3>
+            <p className="text-3xl font-bold text-green-700 mt-2">{centers.length}</p>
           </div>
-
-          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-2xl border border-green-100 hover:shadow-3xl transition-all duration-500 group">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Filtrées</p>
-                <p className="text-3xl font-black text-green-600 mt-2">{filteredFilieres.length}</p>
-              </div>
-              <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                <FontAwesomeIcon icon={faSearch} className="text-green-600 text-xl" />
-              </div>
-            </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl border-l-4 border-purple-500">
+            <FontAwesomeIcon icon={faGraduationCap} className="text-purple-600 text-2xl mb-3" />
+            <h3 className="text-lg font-semibold text-purple-800">Filières Filtrées</h3>
+            <p className="text-3xl font-bold text-purple-700 mt-2">{filteredFilieres.length}</p>
           </div>
         </div>
 
         {/* Formulaire */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-6 mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className={`p-2 rounded-xl ${editingId ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
-              <FontAwesomeIcon icon={editingId ? faEdit : faPlus} className="text-lg" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-800">
-              {editingId ? "Modifier une Filière" : "Ajouter une Filière"}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <span className="text-red-500">*</span>
-                Nom de la filière
-              </label>
-              <input 
-                className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 bg-white/50 placeholder-gray-400 font-medium"
-                placeholder="ex: Informatique, Génie Civil..."
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </div>
-
-            <div className="group">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Description
-              </label>
-              <input 
-                className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 bg-white/50 placeholder-gray-400 font-medium"
-                placeholder="Description de la filière..."
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+        <div 
+          id="form-filiere"
+          className="bg-white rounded-2xl shadow-lg p-6 mb-8 transition-all duration-300 hover:shadow-xl border border-blue-200 animate-slide-up"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-blue-800 flex items-center gap-3">
+              <FontAwesomeIcon icon={editingId ? faEdit : faPlus} className="text-blue-600" />
+              {editingId ? "Modifier une Filière" : "Ajouter une Nouvelle Filière"}
+            </h3>
+            
             {editingId && (
-              <button 
-                onClick={cancelEdit}
-                className="px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 transform hover:scale-105 font-semibold flex items-center justify-center gap-2 order-2 sm:order-1"
+              <button
+                onClick={handleCancelEdit}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
               >
-                <FontAwesomeIcon icon={faTimes} />
                 Annuler
               </button>
             )}
-            <button 
-              onClick={save}
-              disabled={loading || !form.name.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-semibold flex items-center justify-center gap-2 order-1 sm:order-2 flex-1 sm:flex-none"
-            >
-              <FontAwesomeIcon icon={editingId ? faSave : faPlus} />
-              {editingId ? "Mettre à jour" : "Ajouter la filière"}
-            </button>
           </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-blue-700 mb-2">
+                  Nom de la Filière *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ex: Développement Web, Marketing Digital..."
+                  className="w-full p-4 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 font-medium placeholder-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-blue-700 mb-2">
+                  Centre de Formation *
+                </label>
+                <select
+                  name="center"
+                  value={form.center}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-4 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 font-medium"
+                >
+                  <option value="" className="text-blue-400">Sélectionner un centre</option>
+                  {centers.map((c) => (
+                    <option key={c._id} value={c._id} className="py-2">
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-blue-700 mb-2">
+                Description de la Filière
+              </label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Décrivez les objectifs et le contenu de cette filière..."
+                rows="4"
+                className="w-full p-4 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 font-medium placeholder-blue-400 resize-none"
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              className={`w-full md:w-auto px-8 py-4 rounded-xl font-bold text-white transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-3 ${
+                editingId 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              <FontAwesomeIcon icon={editingId ? faEdit : faPlus} />
+              {editingId ? "Mettre à Jour la Filière" : "Ajouter la Filière"}
+            </button>
+          </form>
         </div>
 
-        {/* Barre de recherche */}
-        <div className="relative mb-6">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+        {/* Barre de recherche et statistiques */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-blue-800 flex items-center gap-3">
+              <FontAwesomeIcon icon={faListAlt} />
+              Liste des Filières
+            </h2>
+            
+            <button
+              onClick={loadFilieres}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+            >
+              <FontAwesomeIcon icon={faSync} className={loading ? "animate-spin" : ""} />
+              {loading ? "Chargement..." : "Actualiser"}
+            </button>
           </div>
-          <input
-            type="text"
-            placeholder="Rechercher une filière par nom ou description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/90 backdrop-blur-sm border-2 border-gray-200 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 shadow-lg"
-          />
+
+          <div className="relative w-full md:w-80">
+            <FontAwesomeIcon 
+              icon={faSearch} 
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"
+            />
+            <input
+              type="text"
+              placeholder="Rechercher une filière..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 placeholder-blue-400"
+            />
+          </div>
         </div>
 
         {/* Tableau des filières */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-          {loading ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
+          {filteredFilieres.length === 0 ? (
+            <div className="text-center py-12">
+              <FontAwesomeIcon icon={faListAlt} className="text-blue-300 text-6xl mb-4" />
+              <h3 className="text-xl font-semibold text-blue-800 mb-2">
+                {searchTerm ? "Aucune filière trouvée" : "Aucune filière disponible"}
+              </h3>
+              <p className="text-blue-600">
+                {searchTerm 
+                  ? "Aucune filière ne correspond à votre recherche." 
+                  : "Commencez par ajouter votre première filière."}
+              </p>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200/50">
-                  <thead className="bg-gradient-to-r from-blue-600 to-blue-700">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faGraduationCap} />
-                          Nom de la filière
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                  <tr>
+                    <th className="p-4 text-left font-semibold">Nom de la Filière</th>
+                    <th className="p-4 text-left font-semibold">Description</th>
+                    <th className="p-4 text-left font-semibold">Centre</th>
+                    <th className="p-4 text-center font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredFilieres.map((f, index) => (
+                    <tr 
+                      key={f._id} 
+                      className={`border-b border-blue-100 transition-all duration-300 hover:bg-blue-50 ${
+                        index % 2 === 0 ? 'bg-blue-25' : 'bg-white'
+                      } animate-fade-in`}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <td className="p-4 font-semibold text-blue-900">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <FontAwesomeIcon icon={faGraduationCap} className="text-blue-600" />
+                          </div>
+                          {f.name}
                         </div>
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                        Description
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faList} />
-                          Actions
+                      </td>
+                      <td className="p-4 text-blue-800">
+                        {f.description || (
+                          <span className="text-blue-400 italic">Aucune description</span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <FontAwesomeIcon icon={faBuilding} className="text-blue-500" />
+                          {f.center?.name || (
+                            <span className="text-red-400 italic">Centre non assigné</span>
+                          )}
                         </div>
-                      </th>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex justify-center gap-3">
+                          <button
+                            onClick={() => handleEdit(f)}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-3 rounded-xl transition-all duration-300 transform hover:scale-110 hover:shadow-md"
+                            title="Modifier cette filière"
+                          >
+                            <FontAwesomeIcon icon={faEdit} />
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDelete(f._id)}
+                            className="bg-red-100 hover:bg-red-200 text-red-600 p-3 rounded-xl transition-all duration-300 transform hover:scale-110 hover:shadow-md"
+                            title="Supprimer cette filière"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200/30 bg-white">
-                    {filteredFilieres.map((f, index) => (
-                      <tr 
-                        key={f._id} 
-                        className="hover:bg-blue-50/50 transition-all duration-300 group"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                              {f.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900">{f.name}</div>
-                              <div className="text-sm text-gray-500">
-                                ID: {f._id.substring(0, 8)}...
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-gray-700 max-w-md">
-                            {f.description || (
-                              <span className="text-gray-400 italic">Aucune description</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => edit(f)}
-                              className="bg-gradient-to-r from-amber-400 to-amber-500 text-white p-3 rounded-xl hover:from-amber-500 hover:to-amber-600 transition-all duration-300 transform hover:scale-110 hover:shadow-lg group/tooltip relative"
-                              title="Modifier"
-                            >
-                              <FontAwesomeIcon icon={faEdit} />
-                            </button>
-                            
-                            <button 
-                              onClick={() => remove(f._id)}
-                              className="bg-gradient-to-r from-red-500 to-red-600 text-white p-3 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-110 hover:shadow-lg group/tooltip relative"
-                              title="Supprimer"
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Message si aucun résultat */}
-              {filteredFilieres.length === 0 && (
-                <div className="text-center py-12">
-                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                    {searchTerm ? "Aucune filière trouvée" : "Aucune filière disponible"}
-                  </h3>
-                  <p className="text-gray-500">
-                    {searchTerm 
-                      ? "Aucune filière ne correspond à votre recherche" 
-                      : "Commencez par ajouter une nouvelle filière"
-                    }
-                  </p>
-                </div>
-              )}
-            </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
+
+        {/* Pied de page informatif */}
+        <div className="mt-8 text-center text-blue-600 text-sm">
+          <p>
+            {filteredFilieres.length} filière{filteredFilieres.length !== 1 ? 's' : ''} affichée{filteredFilieres.length !== 1 ? 's' : ''} 
+            {searchTerm && ` (sur ${filieres.length} au total)`}
+          </p>
+        </div>
       </div>
+
+      {/* Styles d'animation personnalisés */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.5s ease-out;
+        }
+        .bg-blue-25 {
+          background-color: #f0f9ff;
+        }
+      `}</style>
     </div>
   );
 }
