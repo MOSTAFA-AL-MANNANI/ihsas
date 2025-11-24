@@ -38,7 +38,7 @@ export default function Add() {
   const MAX_FILE_SIZE = 2000 * 1024; // 2000 Ko en bytes
   const ALLOWED_TYPES = ['application/pdf'];
 
-  console.log(`filier:${filiere}, center:${center}`);
+
 
   useEffect(() => {
     const loadData = async () => {

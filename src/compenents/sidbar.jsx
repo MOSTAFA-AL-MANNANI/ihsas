@@ -53,7 +53,7 @@ const Sidebar = () => {
     },
     {
       path: "/dashboard",
-      name: "Dashboard",
+      name: "Statistiques",
       icon: faChartBar,
       description: "Statistiques et rapports"
     }
