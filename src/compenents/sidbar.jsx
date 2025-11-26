@@ -27,21 +27,22 @@ const Sidebar = () => {
       icon: faUsers,
       description: "Gérer les candidats"
     },
-    {
-      path: "/filiere",
-      name: "Filières",
-      icon: faGraduationCap,
-      description: "Gérer les filières"
-    },
-    {
+        {
       path: "/center",
       name: "Centres",
       icon: faBuilding,
       description: "Gérer les centres"
     },
     {
+      path: "/filiere",
+      name: "Filières",
+      icon: faGraduationCap,
+      description: "Gérer les filières"
+    },
+
+    {
       path: "/filter",
-      name: "Changer Statut",
+      name: "Employabilité",
       icon: faExchangeAlt,
       description: "Modifier les statuts"
     },
@@ -258,9 +259,7 @@ const Sidebar = () => {
 
           {/* Version de l'application */}
           <div className="mt-4 text-center">
-            <span className="text-blue-300/60 text-xs font-medium">
-              Version 1.0.0
-            </span>
+
           </div>
         </div>
       </div>

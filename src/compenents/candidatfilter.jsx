@@ -117,8 +117,8 @@ export default function CandidatFilterPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "En Stage": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "En Travail": return "bg-green-100 text-green-800 border-green-200";
+      case "Stage": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Emploi": return "bg-green-100 text-green-800 border-green-200";
       case "Disponible": return "bg-amber-100 text-amber-800 border-amber-200";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -126,8 +126,8 @@ export default function CandidatFilterPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "En Stage": return faBriefcase;
-      case "En Travail": return faChartLine;
+      case "Stage": return faBriefcase;
+      case "Emploi": return faChartLine;
       case "Disponible": return faUser;
       default: return faUser;
     }
@@ -274,8 +274,8 @@ export default function CandidatFilterPage() {
               >
                 <option value="">Tous les statuts</option>
                 <option value="Disponible">Disponible</option>
-                <option value="En Stage">En Stage</option>
-                <option value="En Travail">En Travail</option>
+                <option value="Stage">Stage</option>
+                <option value="Emploi">Emploi</option>
               </select>
             </div>
 
@@ -357,7 +357,7 @@ export default function CandidatFilterPage() {
                               <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(currentStatus)}`}>
                                 <FontAwesomeIcon icon={getStatusIcon(currentStatus)} className="text-xs" />
                                 {currentStatus}
-                                {stageRemainingTime && currentStatus === "En Stage" && (
+                                {stageRemainingTime && currentStatus === "Stage" && (
                                   <span className="text-xs ml-1">({stageRemainingTime})</span>
                                 )}
                               </div>
@@ -367,8 +367,8 @@ export default function CandidatFilterPage() {
                         
                         <div className="flex items-center gap-4">
                           <div className={`w-3 h-3 rounded-full animate-pulse ${
-                            currentStatus === "En Stage" ? "bg-blue-500" :
-                            currentStatus === "En Travail" ? "bg-green-500" :
+                            currentStatus === "Stage" ? "bg-blue-500" :
+                            currentStatus === "Emploi" ? "bg-green-500" :
                             "bg-amber-500"
                           }`}></div>
                           <FontAwesomeIcon 
@@ -445,7 +445,7 @@ export default function CandidatFilterPage() {
                           {/* Informations détaillées selon le statut */}
                           <div className="space-y-4">
                             {/* Informations Stage */}
-                            {currentStatus === "En Stage" && (
+                            {currentStatus === "Stage" && (
                               <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-200">
                                 <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                                   <FontAwesomeIcon icon={faBriefcase} />
@@ -491,7 +491,7 @@ export default function CandidatFilterPage() {
                             )}
 
                             {/* Informations Travail */}
-                            {currentStatus === "En Travail" && (
+                            {currentStatus === "Emploi" && (
                               <div className="bg-green-50/50 p-4 rounded-2xl border border-green-200">
                                 <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
                                   <FontAwesomeIcon icon={faChartLine} />

@@ -30,7 +30,7 @@ export default function FiliereManager() {
   // Charger tous les centres
   useEffect(() => {
     axios
-      .get("http://ihsas-back.vercel.app/api/center")
+      .get("https://ihsas-back.vercel.app/api/center")
       .then((res) => setCenters(res.data))
       .catch((err) => {
         console.error(err);
@@ -48,7 +48,7 @@ export default function FiliereManager() {
   const loadFilieres = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://ihsas-back.vercel.app/api/filiere");
+      const res = await axios.get("https://ihsas-back.vercel.app/api/filiere");
       setFilieres(res.data);
     } catch (err) {
       console.error(err);
@@ -86,7 +86,7 @@ export default function FiliereManager() {
 
     try {
       if (editingId) {
-        await axios.put(`http://ihsas-back.vercel.app/api/filiere/${editingId}`, form);
+        await axios.put(`https://ihsas-back.vercel.app/api/filiere/${editingId}`, form);
         Swal.fire({
           icon: 'success',
           title: 'Succès',
@@ -98,7 +98,7 @@ export default function FiliereManager() {
         });
         setEditingId(null);
       } else {
-        await axios.post("http://ihsas-back.vercel.app/api/filiere", form);
+        await axios.post("https://ihsas-back.vercel.app/api/filiere", form);
         Swal.fire({
           icon: 'success',
           title: 'Succès',
@@ -182,7 +182,7 @@ export default function FiliereManager() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axios.delete(`http://ihsas-back.vercel.app/api/filiere/${id}`);
+          await axios.delete(`https://ihsas-back.vercel.app/api/filiere/${id}`);
           await loadFilieres();
           
           Swal.fire({

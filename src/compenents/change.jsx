@@ -108,10 +108,10 @@ export default function FilterCandidats() {
       let url = "";
       let body = {};
 
-      if (newStatus === "En Stage") {
+      if (newStatus === "Stage") {
         url = `https://ihsas-back.vercel.app/api/candidat/${id}/stage`;
         body = stageJobData;
-      } else if (newStatus === "En Travail") {
+      } else if (newStatus === "Emploi") {
         url = `https://ihsas-back.vercel.app/api/candidat/${id}/job`;
         body = stageJobData;
       } else if (newStatus === "Disponible") {
@@ -163,8 +163,8 @@ export default function FilterCandidats() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "En Stage": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "En Travail": return "bg-green-100 text-green-800 border-green-200";
+      case "Stage": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Emploi": return "bg-green-100 text-green-800 border-green-200";
       case "Disponible": return "bg-amber-100 text-amber-800 border-amber-200";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -172,8 +172,8 @@ export default function FilterCandidats() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "En Stage": return faGraduationCap;
-      case "En Travail": return faBriefcase;
+      case "Stage": return faGraduationCap;
+      case "Emploi": return faBriefcase;
       case "Disponible": return faUser;
       default: return faUser;
     }
@@ -191,7 +191,7 @@ export default function FilterCandidats() {
             </div>
             <div>
               <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 to-amber-500 bg-clip-text text-transparent">
-                Filtre des Candidats
+                Employabilité
               </h1>
               <p className="text-gray-600">Recherche et gestion avancée des candidats</p>
             </div>
@@ -232,8 +232,8 @@ export default function FilterCandidats() {
             >
               <option value="">Tous les statuts</option>
               <option value="Disponible">Disponible</option>
-              <option value="En Stage">En Stage</option>
-              <option value="En Travail">En Travail</option>
+              <option value="Stage">Stage</option>
+              <option value="Emploi">Emploi</option>
             </select>
           </div>
 
@@ -321,8 +321,8 @@ export default function FilterCandidats() {
                         
                         <div className="flex items-center gap-2">
                           <div className={`w-3 h-3 rounded-full animate-pulse ${
-                            currentStatus === "En Stage" ? "bg-blue-500" :
-                            currentStatus === "En Travail" ? "bg-green-500" :
+                            currentStatus === "Stage" ? "bg-blue-500" :
+                            currentStatus === "Emploi" ? "bg-green-500" :
                             "bg-amber-500"
                           }`}></div>
                           <FontAwesomeIcon 
@@ -345,13 +345,13 @@ export default function FilterCandidats() {
                             const newStatus = form.statusSelect.value;
 
                             const stageJobData = {};
-                            if (newStatus === "En Stage") {
+                            if (newStatus === "Stage") {
                               stageJobData.stageCompany = form.stageCompany.value;
                               stageJobData.stageTitle = form.stageTitle.value;
                               stageJobData.stageStartDate = form.stageStartDate.value;
                               stageJobData.stageEndDate = form.stageEndDate.value;
                               stageJobData.stageType = form.stageType.value;
-                            } else if (newStatus === "En Travail") {
+                            } else if (newStatus === "Emploi") {
                               stageJobData.jobCompany = form.jobCompany.value;
                               stageJobData.jobTitle = form.jobTitle.value;
                               stageJobData.jobContractType = form.jobContractType.value;
@@ -378,8 +378,8 @@ export default function FilterCandidats() {
                                 className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition-all duration-300 hover:border-blue-300 bg-white/50"
                               >
                                 <option value="Disponible">Disponible</option>
-                                <option value="En Stage">En Stage</option>
-                                <option value="En Travail">En Travail</option>
+                                <option value="Stage">Stage</option>
+                                <option value="Emploi">Emploi</option>
                               </select>
                             </div>
 
@@ -395,7 +395,7 @@ export default function FilterCandidats() {
                           </div>
 
                           {/* Champs conditionnels pour Stage */}
-                          {currentStatus === "En Stage" && (
+                          {currentStatus === "Stage" && (
                             <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-200">
                               <h4 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faGraduationCap} />
@@ -412,7 +412,7 @@ export default function FilterCandidats() {
                           )}
 
                           {/* Champs conditionnels pour Travail */}
-                          {currentStatus === "En Travail" && (
+                          {currentStatus === "Emploi" && (
                             <div className="bg-green-50/50 p-6 rounded-2xl border border-green-200">
                               <h4 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faBriefcase} />

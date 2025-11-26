@@ -50,7 +50,7 @@ export default function Dashboard() {
     const fetchCenters = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("https://ihsas-back.vercel.app/api/center");
+        const res = await axios.get("http://localhost:3000/api/center");
         setCenters(res.data);
       } catch (err) {
         console.error(err);
@@ -72,8 +72,8 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const [nums, chart] = await Promise.all([
-        axios.get(`https://ihsas-back.vercel.app/api/stats/center/${centerId}`),
-        axios.get(`https://ihsas-back.vercel.app/api/stats/center/${centerId}/chart`)
+        axios.get(`http://localhost:3000/api/stats/center/${centerId}`),
+        axios.get(`http://localhost:3000/api/stats/center/${centerId}/chart`)
       ]);
 
       setStats(nums.data.statistics);
@@ -227,9 +227,9 @@ export default function Dashboard() {
       // Tableau des statistiques
       const tableData = [
         ['Disponible', stats.Disponible || 0],
-        ['En Stage', stats['En Stage'] || 0],
-        ['En Travail', stats['En Travail'] || 0],
-        ['TOTAL', (stats.Disponible || 0) + (stats['En Stage'] || 0) + (stats['En Travail'] || 0)]
+        ['Stage', stats['Stage'] || 0],
+        ['Emploi', stats['Emploi'] || 0],
+        ['TOTAL', (stats.Disponible || 0) + (stats['Stage'] || 0) + (stats['Emploi'] || 0)]
       ];
       
       let currentY = createTable(
@@ -401,7 +401,7 @@ export default function Dashboard() {
     try {
       setGlobalLoading(true);
       // Utiliser la nouvelle API optimisée
-      const response = await axios.get("https://ihsas-back.vercel.app/api/stats/centers");
+      const response = await axios.get("http://localhost:3000/api/stats/centers");
       
       console.log("Données reçues de l'API:", response.data);
       
@@ -414,8 +414,8 @@ export default function Dashboard() {
           name: centerName,
           statistics: {
             Disponible: center.Disponible || 0,
-            'En Stage': center['En Stage'] || 0,
-            'En Travail': center['En Travail'] || 0
+            'Stage': center['Stage'] || 0,
+            'Emploi': center['Emploi'] || 0
           },
           total: center.total || 0,
           performance: center.performance || 0
@@ -586,16 +586,16 @@ export default function Dashboard() {
                       <div className="flex justify-between items-center">
                         <span className="text-green-600">
                           <FontAwesomeIcon icon={faGraduationCap} className="mr-2" />
-                          En Stage:
+                          Stage:
                         </span>
-                        <span className="font-bold text-green-700">{center.statistics?.['En Stage'] || 0}</span>
+                        <span className="font-bold text-green-700">{center.statistics?.['Stage'] || 0}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-cyan-600">
                           <FontAwesomeIcon icon={faBriefcase} className="mr-2" />
-                          En Travail:
+                          Emploi:
                         </span>
-                        <span className="font-bold text-cyan-700">{center.statistics?.['En Travail'] || 0}</span>
+                        <span className="font-bold text-cyan-700">{center.statistics?.['Emploi'] || 0}</span>
                       </div>
                       
                       {/* Barre de performance */}
@@ -651,28 +651,28 @@ export default function Dashboard() {
               <p className="text-sm text-blue-500 mt-2">Candidats disponibles</p>
             </div>
 
-            {/* Carte En Stage */}
+            {/* Carte Stage */}
             <div className="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl border-l-4 border-green-500">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-green-800">En Stage</h3>
+                <h3 className="text-lg font-semibold text-green-800">Stage</h3>
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                   <FontAwesomeIcon icon={faGraduationCap} className="text-green-600 text-xl" />
                 </div>
               </div>
-              <p className="text-3xl font-bold text-green-700 mt-4">{stats["En Stage"]}</p>
-              <p className="text-sm text-green-500 mt-2">Candidats en stage</p>
+              <p className="text-3xl font-bold text-green-700 mt-4">{stats["Stage"]}</p>
+              <p className="text-sm text-green-500 mt-2">Candidats Stage</p>
             </div>
 
-            {/* Carte En Travail */}
+            {/* Carte Emploi */}
             <div className="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl border-l-4 border-cyan-500">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-cyan-800">En Travail</h3>
+                <h3 className="text-lg font-semibold text-cyan-800">Emploi</h3>
                 <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
                   <FontAwesomeIcon icon={faBriefcase} className="text-cyan-600 text-xl" />
                 </div>
               </div>
-              <p className="text-3xl font-bold text-cyan-700 mt-4">{stats["En Travail"]}</p>
-              <p className="text-sm text-cyan-500 mt-2">Candidats en travail</p>
+              <p className="text-3xl font-bold text-cyan-700 mt-4">{stats["Emploi"]}</p>
+              <p className="text-sm text-cyan-500 mt-2">Candidats Emploi</p>
             </div>
           </div>
         )}
