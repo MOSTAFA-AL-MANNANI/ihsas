@@ -14,12 +14,9 @@ import {
   faFilePdf,
   faFileAlt,
   faBriefcase,
-  faCalendarAlt,
-  faMapMarkerAlt,
-  faEye,
   faChartLine,
-  faClock,
-  faFileContract
+  faEye,
+  faSpinner
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function CandidatFilterPage() {
@@ -30,34 +27,75 @@ export default function CandidatFilterPage() {
   const [status, setStatus] = useState("");
   const [candidats, setCandidats] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingFilieres, setLoadingFilieres] = useState(false);
   const [expandedCandidat, setExpandedCandidat] = useState(null);
 
-  // Récupération des centres et filières
+  // Récupération des centres
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCenters = async () => {
       try {
-        const [centersRes, filieresRes] = await Promise.all([
-          axios.get("https://ihsas-back.vercel.app/api/center"),
-          axios.get("https://ihsas-back.vercel.app/api/filiere"),
-        ]);
+        const centersRes = await axios.get("https://ihsas-back.vercel.app/api/center");
         setCenters(centersRes.data);
-        setFilieres(filieresRes.data);
       } catch (err) {
-        console.error("Erreur lors de la récupération des centres ou filières :", err);
+        console.error("Erreur lors de la récupération des centres :", err);
         Swal.fire({
           icon: 'error',
           title: 'Erreur',
-          text: 'Erreur lors du chargement des données',
+          text: 'Erreur lors du chargement des centres',
           confirmButtonColor: '#dc2626',
           background: '#f8fafc'
         });
       }
     };
-    fetchData();
+    fetchCenters();
   }, []);
+
+  // Récupération des filières quand un centre est sélectionné
+  useEffect(() => {
+    const fetchFilieresByCenter = async () => {
+      if (!center) {
+        setFilieres([]);
+        setFiliere("");
+        return;
+      }
+
+      setLoadingFilieres(true);
+      try {
+        const filieresRes = await axios.get(`https://ihsas-back.vercel.app/api/filiere/by-center/${center}`);
+        setFilieres(filieresRes.data);
+        setFiliere(""); // Réinitialiser la sélection de filière
+      } catch (err) {
+        console.error("Erreur lors de la récupération des filières :", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: 'Erreur lors du chargement des filières',
+          confirmButtonColor: '#dc2626',
+          background: '#f8fafc'
+        });
+        setFilieres([]);
+      } finally {
+        setLoadingFilieres(false);
+      }
+    };
+
+    fetchFilieresByCenter();
+  }, [center]);
 
   // Récupération des candidats filtrés
   const fetchCandidats = async () => {
+    // Validation des filtres
+    if (center && filieres.length === 0) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Aucune filière disponible',
+        text: 'Le centre sélectionné ne contient aucune filière',
+        confirmButtonColor: '#f59e0b',
+        background: '#f8fafc'
+      });
+      return;
+    }
+
     const params = {};
     if (center) params.center = center;
     if (filiere) params.filiere = filiere;
@@ -113,6 +151,14 @@ export default function CandidatFilterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Réinitialiser tous les filtres
+  const resetFilters = () => {
+    setCenter("");
+    setFiliere("");
+    setStatus("");
+    setCandidats([]);
   };
 
   const getStatusColor = (status) => {
@@ -209,9 +255,19 @@ export default function CandidatFilterPage() {
             </div>
           </div>
 
-          <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-lg border border-blue-100">
-            <p className="text-sm text-gray-600">Total trouvé</p>
-            <p className="text-2xl font-black text-blue-600">{candidats.length}</p>
+          <div className="flex items-center gap-4">
+            <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-lg border border-blue-100">
+              <p className="text-sm text-gray-600">Total trouvé</p>
+              <p className="text-2xl font-black text-blue-600">{candidats.length}</p>
+            </div>
+            {(center || filiere || status) && (
+              <button
+                onClick={resetFilters}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-2xl transition-all duration-300 transform hover:scale-105 font-semibold"
+              >
+                Réinitialiser
+              </button>
+            )}
           </div>
         </div>
 
@@ -248,17 +304,24 @@ export default function CandidatFilterPage() {
               <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                 <FontAwesomeIcon icon={faGraduationCap} className="text-amber-500 text-sm" />
                 Filière
+                {loadingFilieres && (
+                  <FontAwesomeIcon icon={faSpinner} className="text-amber-500 text-sm animate-spin" />
+                )}
               </label>
               <select
                 value={filiere}
                 onChange={e => setFiliere(e.target.value)}
-                className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-amber-500/30 focus:border-amber-500 transition-all duration-300 hover:border-amber-300 bg-white/50"
+                disabled={!center || loadingFilieres}
+                className="w-full border-2 border-gray-200 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-amber-500/30 focus:border-amber-500 transition-all duration-300 hover:border-amber-300 bg-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="">Toutes les filières</option>
+                <option value="">{center ? "Toutes les filières" : "Sélectionnez d'abord un centre"}</option>
                 {filieres.map(f => (
                   <option key={f._id} value={f._id}>{f.name}</option>
                 ))}
               </select>
+              {center && !loadingFilieres && filieres.length === 0 && (
+                <p className="text-xs text-red-500 mt-1">Aucune filière disponible pour ce centre</p>
+              )}
             </div>
 
             {/* Filtre Statut */}
@@ -283,7 +346,7 @@ export default function CandidatFilterPage() {
             <div className="flex items-end">
               <button
                 onClick={fetchCandidats}
-                disabled={loading}
+                disabled={loading || (center && filieres.length === 0)}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group font-semibold text-lg"
               >
                 <FontAwesomeIcon 
@@ -294,6 +357,36 @@ export default function CandidatFilterPage() {
               </button>
             </div>
           </div>
+
+          {/* Indicateur de filtre actif */}
+          {(center || filiere || status) && (
+            <div className="bg-blue-50/50 border border-blue-200 rounded-2xl p-4">
+              <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
+                Filtres actifs :
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {center && (
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                    <FontAwesomeIcon icon={faBuilding} className="text-xs" />
+                    Centre: {centers.find(c => c._id === center)?.name}
+                  </span>
+                )}
+                {filiere && (
+                  <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                    <FontAwesomeIcon icon={faGraduationCap} className="text-xs" />
+                    Filière: {filieres.find(f => f._id === filiere)?.name}
+                  </span>
+                )}
+                {status && (
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                    <FontAwesomeIcon icon={faUser} className="text-xs" />
+                    Statut: {status}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Résultats */}
@@ -314,10 +407,12 @@ export default function CandidatFilterPage() {
                 <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-2xl" />
               </div>
               <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                Aucun candidat trouvé
+                {center || filiere || status ? "Aucun candidat trouvé" : "Aucun filtre appliqué"}
               </h3>
               <p className="text-gray-500">
-                Ajustez vos critères de recherche pour afficher les résultats
+                {center || filiere || status 
+                  ? "Ajustez vos critères de recherche pour afficher les résultats" 
+                  : "Sélectionnez des critères de filtrage pour commencer votre recherche"}
               </p>
             </div>
           ) : (

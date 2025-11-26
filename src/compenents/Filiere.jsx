@@ -10,7 +10,8 @@ import {
   faBuilding,
   faListAlt,
   faSync,
-  faSearch
+  faSearch,
+  faFilter
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function FiliereManager() {
@@ -18,6 +19,7 @@ export default function FiliereManager() {
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCenter, setSelectedCenter] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -44,11 +46,17 @@ export default function FiliereManager() {
       });
   }, []);
 
-  // Charger les filières
-  const loadFilieres = async () => {
+  // Charger les filières (toutes ou par centre)
+  const loadFilieres = async (centerId = "") => {
     try {
       setLoading(true);
-      const res = await axios.get("https://ihsas-back.vercel.app/api/filiere");
+      let url = "https://ihsas-back.vercel.app/api/filiere";
+      
+      if (centerId) {
+        url = `https://ihsas-back.vercel.app/api/filiere/by-center/${centerId}`;
+      }
+      
+      const res = await axios.get(url);
       setFilieres(res.data);
     } catch (err) {
       console.error(err);
@@ -64,9 +72,19 @@ export default function FiliereManager() {
     }
   };
 
+  // Charger toutes les filières au premier rendu
   useEffect(() => {
     loadFilieres();
   }, []);
+
+  // Charger les filières quand le centre sélectionné change
+  useEffect(() => {
+    if (selectedCenter) {
+      loadFilieres(selectedCenter);
+    } else {
+      loadFilieres();
+    }
+  }, [selectedCenter]);
 
   // Filtrer les filières selon la recherche
   const filteredFilieres = filieres.filter(filiere =>
@@ -78,6 +96,17 @@ export default function FiliereManager() {
   // Gestion des inputs
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // Gestion du changement de centre pour le filtre
+  const handleCenterFilterChange = (e) => {
+    setSelectedCenter(e.target.value);
+  };
+
+  // Réinitialiser le filtre de centre
+  const resetCenterFilter = () => {
+    setSelectedCenter("");
+    setSearchTerm("");
   };
 
   // Ajouter ou modifier
@@ -111,7 +140,12 @@ export default function FiliereManager() {
       }
 
       setForm({ name: "", description: "", center: "" });
-      loadFilieres();
+      // Recharger les filières selon le filtre actuel
+      if (selectedCenter) {
+        loadFilieres(selectedCenter);
+      } else {
+        loadFilieres();
+      }
     } catch (err) {
       Swal.fire({
         icon: 'error',
@@ -183,7 +217,12 @@ export default function FiliereManager() {
       if (result.isConfirmed) {
         try {
           await axios.delete(`https://ihsas-back.vercel.app/api/filiere/${id}`);
-          await loadFilieres();
+          // Recharger les filières selon le filtre actuel
+          if (selectedCenter) {
+            await loadFilieres(selectedCenter);
+          } else {
+            await loadFilieres();
+          }
           
           Swal.fire({
             icon: 'success',
@@ -332,37 +371,76 @@ export default function FiliereManager() {
           </form>
         </div>
 
-        {/* Barre de recherche et statistiques */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-blue-800 flex items-center gap-3">
-              <FontAwesomeIcon icon={faListAlt} />
-              Liste des Filières
-            </h2>
-            
-            <button
-              onClick={loadFilieres}
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
-            >
-              <FontAwesomeIcon icon={faSync} className={loading ? "animate-spin" : ""} />
-              {loading ? "Chargement..." : "Actualiser"}
-            </button>
+        {/* Barre de filtres et recherche */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 transition-all duration-300 hover:shadow-xl">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-blue-800 flex items-center gap-3">
+                <FontAwesomeIcon icon={faListAlt} />
+                Liste des Filières
+              </h2>
+              
+              <button
+                onClick={() => selectedCenter ? loadFilieres(selectedCenter) : loadFilieres()}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faSync} className={loading ? "animate-spin" : ""} />
+                {loading ? "Chargement..." : "Actualiser"}
+              </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+              {/* Filtre par centre */}
+              <div className="relative w-full md:w-64">
+                <FontAwesomeIcon 
+                  icon={faFilter} 
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"
+                />
+                <select
+                  value={selectedCenter}
+                  onChange={handleCenterFilterChange}
+                  className="w-full pl-12 pr-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 appearance-none cursor-pointer"
+                >
+                  <option value="">Tous les centres</option>
+                  {centers.map((center) => (
+                    <option key={center._id} value={center._id}>
+                      {center.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Barre de recherche */}
+              <div className="relative w-full md:w-80">
+                <FontAwesomeIcon 
+                  icon={faSearch} 
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Rechercher une filière..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 placeholder-blue-400"
+                />
+              </div>
+
+            </div>
           </div>
 
-          <div className="relative w-full md:w-80">
-            <FontAwesomeIcon 
-              icon={faSearch} 
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400"
-            />
-            <input
-              type="text"
-              placeholder="Rechercher une filière..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-300 transition-all duration-300 bg-white text-blue-900 placeholder-blue-400"
-            />
-          </div>
+          {/* Indicateur de filtre actif */}
+          {selectedCenter && (
+            <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-300">
+              <p className="text-blue-800 font-medium flex items-center gap-2">
+                <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
+                Affichage des filières du centre : 
+                <span className="font-bold">
+                  {centers.find(c => c._id === selectedCenter)?.name}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Tableau des filières */}
@@ -371,13 +449,23 @@ export default function FiliereManager() {
             <div className="text-center py-12">
               <FontAwesomeIcon icon={faListAlt} className="text-blue-300 text-6xl mb-4" />
               <h3 className="text-xl font-semibold text-blue-800 mb-2">
-                {searchTerm ? "Aucune filière trouvée" : "Aucune filière disponible"}
+                {searchTerm || selectedCenter ? "Aucune filière trouvée" : "Aucune filière disponible"}
               </h3>
               <p className="text-blue-600">
                 {searchTerm 
                   ? "Aucune filière ne correspond à votre recherche." 
+                  : selectedCenter
+                  ? "Aucune filière n'est associée à ce centre."
                   : "Commencez par ajouter votre première filière."}
               </p>
+              {(searchTerm || selectedCenter) && (
+                <button
+                  onClick={resetCenterFilter}
+                  className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-300"
+                >
+                  Afficher toutes les filières
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -451,7 +539,9 @@ export default function FiliereManager() {
         <div className="mt-8 text-center text-blue-600 text-sm">
           <p>
             {filteredFilieres.length} filière{filteredFilieres.length !== 1 ? 's' : ''} affichée{filteredFilieres.length !== 1 ? 's' : ''} 
-            {searchTerm && ` (sur ${filieres.length} au total)`}
+            {selectedCenter && ` pour le centre "${centers.find(c => c._id === selectedCenter)?.name}"`}
+            {(searchTerm && !selectedCenter) && ` (recherche : "${searchTerm}")`}
+            {(!selectedCenter && !searchTerm) && ` sur ${filieres.length} au total`}
           </p>
         </div>
       </div>

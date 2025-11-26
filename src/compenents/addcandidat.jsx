@@ -205,14 +205,6 @@ export default function Add() {
           <div class="text-center">
             <p class="text-lg font-semibold mb-4">${res.data.message}</p>
             <div class="flex justify-center gap-6 mt-4">
-              <div class="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded-lg">
-                <FontAwesomeIcon icon={faCheckCircle} />
-                <span class="text-sm font-medium">CV: ${Math.round(cv.size / 1024)} Ko</span>
-              </div>
-              <div class="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded-lg">
-                <FontAwesomeIcon icon={faCheckCircle} />
-                <span class="text-sm font-medium">Lettre: ${Math.round(cover.size / 1024)} Ko</span>
-              </div>
             </div>
           </div>
         `,
