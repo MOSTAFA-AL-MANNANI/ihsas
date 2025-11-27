@@ -50,7 +50,7 @@ export default function Dashboard() {
     const fetchCenters = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("http://localhost:3000/api/center");
+        const res = await axios.get("https://ihsas-back.vercel.app/api/center");
         setCenters(res.data);
       } catch (err) {
         console.error(err);
@@ -72,8 +72,8 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const [nums, chart] = await Promise.all([
-        axios.get(`http://localhost:3000/api/stats/center/${centerId}`),
-        axios.get(`http://localhost:3000/api/stats/center/${centerId}/chart`)
+        axios.get(`https://ihsas-back.vercel.app/api/stats/center/${centerId}`),
+        axios.get(`https://ihsas-back.vercel.app/api/stats/center/${centerId}/chart`)
       ]);
 
       setStats(nums.data.statistics);
@@ -401,7 +401,7 @@ export default function Dashboard() {
     try {
       setGlobalLoading(true);
       // Utiliser la nouvelle API optimisée
-      const response = await axios.get("http://localhost:3000/api/stats/centers");
+      const response = await axios.get("https://ihsas-back.vercel.app/api/stats/centers");
       
       console.log("Données reçues de l'API:", response.data);
       
